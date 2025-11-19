@@ -25,7 +25,7 @@ jobs:
     - name: install deps
       run: |
         sudo apt update
-        sudo apt install -y python3-pytest curl llvm-18 llvm-18-dev clang-18 libllvm-18-ocaml-dev
+        sudo apt install -y python3-pytest curl lld llvm-18 llvm-18-dev clang-18 libllvm-18-ocaml-dev
         ./antlr/setup.sh
         ./llvm/setup.sh
         ./pybind11/setup.sh

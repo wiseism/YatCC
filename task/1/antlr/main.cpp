@@ -63,11 +63,8 @@ void print_token(const antlr4::Token* token,
     auto col = token->getCharPositionInLine();
     auto text = token->getText();
     if (tokenType==SYsULexer::Whitespace) {
-      std::cout << "Whitespace_true"<< text<<std::endl;
       hasWhiteSpace = true;
       return;
-    }else{
-          std::cout << "hasWhiteSpace:"<< hasWhiteSpace<< ",tokenType:"<< tokenType<< ",text:"<< text<<std::endl;
     }
     // 更新状态
     if (line != lastLine) {
@@ -96,7 +93,7 @@ void print_token(const antlr4::Token* token,
     if (tokenType != antlr4::Token::EOF) {
         outFile << tokenTypeName << " '" << text << "'	";
     } else {
-        outFile << tokenTypeName << " ''";
+        outFile << tokenTypeName << " ''	";
     }
 
     // 添加 [StartOfLine]
@@ -108,7 +105,6 @@ void print_token(const antlr4::Token* token,
     if (hasWhiteSpace) {
       outFile << " [LeadingSpace]";
       hasWhiteSpace = false;
-      std::cout << "Whitespace_true"<< text<<std::endl;
     }
     outFile << "	Loc=<" << currentLocation.filename
           << ":" << line << ":" << (col + 1) << ">";

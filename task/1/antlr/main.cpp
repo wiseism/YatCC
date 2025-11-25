@@ -3,7 +3,6 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
-
 // 映射定义，将ANTLR的tokenTypeName映射到clang的格式
 std::unordered_map<std::string, std::string> tokenTypeMapping = {
     { "Int", "int" },
@@ -53,11 +52,10 @@ void updateLocationInfo(const antlr4::Token* token) {
 void print_token(const antlr4::Token* token,
                  const antlr4::CommonTokenStream& tokens,
                  std::ofstream& outFile,
-                 const antlr4::Lexer& lexer)
+                 const SYsULexer& lexer)
 {
     static int lastLine = -1;
     static bool afterNewline = true;
-    static bool hasLeadingSpace = false;
 
     auto tokenType = token->getType();
     auto line = token->getLine();
@@ -67,7 +65,6 @@ void print_token(const antlr4::Token* token,
     // 更新状态
     if (line != lastLine) {
         afterNewline = true;
-        hasLeadingSpace = (col > 0);  // 如果不是从第0列开始，说明前面有空格
         lastLine = line;
     }
 
@@ -101,8 +98,9 @@ void print_token(const antlr4::Token* token,
     }
 
     // 添加 [LeadingSpace]
-    if (col > 0 && hasLeadingSpace) {
+    if (lexer.hasWhiteSpace) {
       outFile << " [LeadingSpace]";
+      lexer.hasWhiteSpace = false;
     }
     outFile << " Loc=<" << currentLocation.filename
           << ":" << line << ":" << (col + 1) << ">";

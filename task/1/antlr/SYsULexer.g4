@@ -1,5 +1,7 @@
 lexer grammar SYsULexer;
-
+@lexer::members {
+mutable bool hasWhiteSpace = false;
+}
 Int : 'int';
 Return : 'return';
 
@@ -108,6 +110,9 @@ LineAfterPreprocessing
 
 Whitespace
     :   [ \t]+
+        {
+           hasWhiteSpace = true;
+        }
         -> skip
     ;
 

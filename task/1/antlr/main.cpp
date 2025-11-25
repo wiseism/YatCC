@@ -78,6 +78,10 @@ void print_token(const antlr4::Token* token,
       hasWhiteSpace = true;
       return;
     }
+    if (tokenType==SYsULexer::BlankLine) {
+      updateLocationInfo(token);
+      return;
+    }
     // 更新状态
     if (line != lastLine) {
       updateLocationInfo(token);

@@ -5,6 +5,9 @@ BLOCK_COMMENT : '/*'.*?'*/';
 LineAfterPreprocessing
     :   '#' ~[\r\n]*
     ;
+// 添加空白行规则
+BlankLine
+    :   '\r'? '\n' [ \t]* '\r'? '\n';
 
 Int : 'int';
 Return : 'return';

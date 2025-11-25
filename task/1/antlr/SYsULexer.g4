@@ -100,9 +100,6 @@ HexadecimalDigit
 
 LineAfterPreprocessing
     :   '#' ~[\r\n]*
-        {
-            // processPreprocessorLine(getText());
-        }
         -> skip
     ;
 
@@ -114,11 +111,8 @@ Newline
     :   (   '\r' '\n'?
         |   '\n'
         )
-        {
-            // 更新行号计数器
-            // line++;
-            // charPositionInLine = 0;
-        }
         -> skip
     ;
 
+LINE_COMMENT : '//' .*? '\r'? '\n' -> skip;
+BLOCK_COMMENT : '/*'.*?'*/'-> skip ;

@@ -38,15 +38,14 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
 struct LocationInfo {
     std::string filename;
     int line;
-    int column;
 };
 
-LocationInfo currentLocation = {"unknown", 1, 1};
+LocationInfo currentLocation = {"unknown", 0};
 
 void updateLocationInfo(const antlr4::Token* token) {
-    // 这里可以根据预处理信息更新位置信息
-    currentLocation.line = token->getLine();
-    currentLocation.column = token->getCharPositionInLine() + 1;
+  if (token->getType()!=SYsULexer::LINE_COMMENT&&token->getType()!=SYsULexer::BLOCK_COMMENT) {
+    currentLocation.line++;
+  }
 }
 
 void print_token(const antlr4::Token* token,
@@ -68,6 +67,7 @@ void print_token(const antlr4::Token* token,
     }
     // 更新状态
     if (line != lastLine) {
+      updateLocationInfo(token);
         afterNewline = true;
         lastLine = line;
     }
@@ -107,13 +107,14 @@ void print_token(const antlr4::Token* token,
       hasWhiteSpace = false;
     }
     outFile << "	Loc=<" << currentLocation.filename
-          << ":" << line << ":" << (col + 1) << ">";
+          << ":" << currentLocation.line << ":" << (col + 1) << ">";
 
     outFile << std::endl;
 
     // 更新状态
     afterNewline = false;
     if (text.find('\n') != std::string::npos) {
+      updateLocationInfo(token);
         afterNewline = true;
     }
 }
@@ -136,8 +137,7 @@ int main(int argc, char* argv[]) {
     return -3;
   }
   currentLocation.filename = argv[1];  // 初始文件名
-  currentLocation.line = 1;
-  currentLocation.column = 1;
+  currentLocation.line = 0;
   antlr4::ANTLRInputStream input(inFile);
   SYsULexer lexer(&input);
 

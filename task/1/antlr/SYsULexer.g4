@@ -11,11 +11,24 @@ LeftBrace : '{';
 RightBrace : '}';
 
 Plus : '+';
+Minus : '-';
+Multi : '*';
+Div : '/';
+Mod : '%';
 
 Semi : ';';
 Comma : ',';
 
 Equal : '=';
+EqualEqual : '==';
+NotEqual : '!=';
+Less : '<';
+Greater : '>';
+LessEqual : '<=';
+GreaterEqual : '>=';
+AndAnd : '&&';
+OrOr : '||';
+Not : '!';
 
 Identifier
     :   IdentifierNondigit
@@ -47,6 +60,7 @@ fragment
 IntegerConstant
     :   DecimalConstant
     |   OctalConstant
+    |   HexadecimalConstant
     ;
 
 fragment
@@ -59,6 +73,15 @@ OctalConstant
     :   '0' OctalDigit*
     ;
 
+fragment
+HexadecimalConstant
+    :   HexadecimalPrefix HexadecimalDigit+
+    ;
+
+fragment
+HexadecimalPrefix
+    :   '0' [xX]
+    ;
 
 fragment
 NonzeroDigit
@@ -70,11 +93,16 @@ OctalDigit
     :   [0-7]
     ;
 
+fragment
+HexadecimalDigit
+    :   [0-9a-fA-F]
+    ;
 
-// 预处理信息处理，可以从预处理信息中获得文件名以及行号
-// 预处理信息中的第一个数字即为行号
 LineAfterPreprocessing
-    :   '#' Whitespace* ~[\r\n]*
+    :   '#' ~[\r\n]*
+        {
+            // processPreprocessorLine(getText());
+        }
         -> skip
     ;
 
@@ -83,11 +111,15 @@ Whitespace
         -> skip
     ;
 
-// 换行符号，可以利用这个信息来更新行号
 Newline
     :   (   '\r' '\n'?
         |   '\n'
         )
+        {
+            // 更新行号计数器
+            // line++;
+            // charPositionInLine = 0;
+        }
         -> skip
     ;
 

@@ -42,7 +42,7 @@ struct LocationInfo {
     int column;
 };
 
-LocationInfo currentLocation = {"", 1, 1};
+LocationInfo currentLocation = {"unknown", 1, 1};
 
 void updateLocationInfo(const antlr4::Token* token) {
     // 这里可以根据预处理信息更新位置信息
@@ -101,11 +101,11 @@ void print_token(const antlr4::Token* token,
     }
 
     // 添加 [LeadingSpace]
-    if (hasLeadingSpace && col > 0 && afterNewline) {
-        outFile << " [LeadingSpace]";
+    if (col > 0 && hasLeadingSpace) {
+      outFile << " [LeadingSpace]";
     }
-
-    outFile << " Loc=<" << ":" << line << ":" << (col + 1) << ">";
+    outFile << " Loc=<" << currentLocation.filename
+          << ":" << line << ":" << (col + 1) << ">";
 
     outFile << std::endl;
 
@@ -133,12 +133,11 @@ int main(int argc, char* argv[]) {
     std::cout << "Error: unable to open output file: " << argv[2] << '\n';
     return -3;
   }
-
+  currentLocation.filename = argv[1];  // 初始文件名
+  currentLocation.line = 1;
+  currentLocation.column = 1;
   antlr4::ANTLRInputStream input(inFile);
   SYsULexer lexer(&input);
-
-  // 设置源文件名
-  currentLocation.filename = argv[1];
 
   antlr4::CommonTokenStream tokens(&lexer);
   tokens.fill();

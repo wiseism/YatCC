@@ -56,12 +56,19 @@ void print_token(const antlr4::Token* token,
 {
     static int lastLine = -1;
     static bool afterNewline = true;
+    static bool hasWhiteSpace = false;
 
     auto tokenType = token->getType();
     auto line = token->getLine();
     auto col = token->getCharPositionInLine();
     auto text = token->getText();
-
+    if (tokenType==SYsULexer::Whitespace) {
+      std::cout << "Whitespace_true"<< text<<std::endl;
+      hasWhiteSpace = true;
+      return;
+    }else{
+          std::cout << "hasWhiteSpace:"<< hasWhiteSpace<< ",tokenType:"<< tokenType<< ",text:"<< text<<std::endl;
+    }
     // 更新状态
     if (line != lastLine) {
         afterNewline = true;
@@ -87,7 +94,7 @@ void print_token(const antlr4::Token* token,
 
     // 输出 token 名字和文本
     if (tokenType != antlr4::Token::EOF) {
-        outFile << tokenTypeName << " '" << text << "'";
+        outFile << tokenTypeName << " '" << text << "'	";
     } else {
         outFile << tokenTypeName << " ''";
     }
@@ -98,12 +105,12 @@ void print_token(const antlr4::Token* token,
     }
 
     // 添加 [LeadingSpace]
-    if (lexer.hasWhiteSpace) {
+    if (hasWhiteSpace) {
       outFile << " [LeadingSpace]";
-      std::cout<<"hasWhiteSpace_false"<<std::endl;
-      lexer.hasWhiteSpace = false;
+      hasWhiteSpace = false;
+      std::cout << "Whitespace_true"<< text<<std::endl;
     }
-    outFile << " Loc=<" << currentLocation.filename
+    outFile << "	Loc=<" << currentLocation.filename
           << ":" << line << ":" << (col + 1) << ">";
 
     outFile << std::endl;

@@ -111,6 +111,8 @@ LineAfterPreprocessing
 Whitespace
     :   [ \t]+
         {
+
+      std::cout<<"hasWhiteSpace_true"<<std::endl;
            hasWhiteSpace = true;
         }
         -> skip

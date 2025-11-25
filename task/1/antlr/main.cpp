@@ -100,6 +100,7 @@ void print_token(const antlr4::Token* token,
     // 添加 [LeadingSpace]
     if (lexer.hasWhiteSpace) {
       outFile << " [LeadingSpace]";
+      std::cout<<"hasWhiteSpace_false"<<std::endl;
       lexer.hasWhiteSpace = false;
     }
     outFile << " Loc=<" << currentLocation.filename

@@ -1,5 +1,11 @@
 lexer grammar SYsULexer;
 
+LINE_COMMENT : '//' .*? '\r'? '\n';
+BLOCK_COMMENT : '/*'.*?'*/';
+LineAfterPreprocessing
+    :   '#' ~[\r\n]*
+    ;
+
 Int : 'int';
 Return : 'return';
 
@@ -98,10 +104,6 @@ HexadecimalDigit
     :   [0-9a-fA-F]
     ;
 
-LineAfterPreprocessing
-    :   '#' ~[\r\n]*
-        -> skip
-    ;
 
 Whitespace
     :   [ \t]+
@@ -113,6 +115,3 @@ Newline
         )
         -> skip
     ;
-
-LINE_COMMENT : '//' .*? '\r'? '\n' -> skip;
-BLOCK_COMMENT : '/*'.*?'*/'-> skip ;

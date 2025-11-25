@@ -1,6 +1,7 @@
 #include "SYsULexer.h" // 确保这里的头文件名与您生成的词法分析器匹配
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <unordered_map>
 #include <vector>
 // 映射定义，将ANTLR的tokenTypeName映射到clang的格式
@@ -43,7 +44,7 @@ struct LocationInfo {
 LocationInfo currentLocation = {"unknown", 0};
 
 void updateLocationInfo(const antlr4::Token* token) {
-  if (token->getType()!=SYsULexer::LINE_COMMENT&&token->getType()!=SYsULexer::BLOCK_COMMENT) {
+  if (token->getType()!=SYsULexer::LineAfterPreprocessing) {
     currentLocation.line++;
   }
 }
@@ -61,6 +62,18 @@ void print_token(const antlr4::Token* token,
     auto line = token->getLine();
     auto col = token->getCharPositionInLine();
     auto text = token->getText();
+
+    if (tokenType==SYsULexer::LineAfterPreprocessing) {
+      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\".*)");
+      std::smatch matches;
+      if (std::regex_match(text, matches, pattern)) {
+        std::string filename = matches[2].str();
+        if (filename.find('<') == std::string::npos) {
+          currentLocation.filename = filename;
+        }
+      }
+      return;
+    }
     if (tokenType==SYsULexer::Whitespace) {
       hasWhiteSpace = true;
       return;
@@ -136,7 +149,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Error: unable to open output file: " << argv[2] << '\n';
     return -3;
   }
-  currentLocation.filename = argv[1];  // 初始文件名
   currentLocation.line = 0;
   antlr4::ANTLRInputStream input(inFile);
   SYsULexer lexer(&input);

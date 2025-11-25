@@ -11,6 +11,7 @@ BlankLine
 
 Int : 'int';
 Return : 'return';
+Const : 'const';
 
 LeftParen : '(';
 RightParen : ')';

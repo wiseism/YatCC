@@ -52,7 +52,7 @@ void updateLocationInfo(const antlr4::Token* token) {
 void print_token(const antlr4::Token* token,
                  const antlr4::CommonTokenStream& tokens,
                  std::ofstream& outFile,
-                 const SYsULexer& lexer)
+                 const antlr4::Lexer& lexer)
 {
     static int lastLine = -1;
     static bool afterNewline = true;
@@ -94,7 +94,7 @@ void print_token(const antlr4::Token* token,
 
     // 映射到 clang 风格名字
     static const std::unordered_map<std::string, std::string> mapping = {
-        {"Int", "int"}, {"Return", "return"},
+        {"Int", "int"}, {"Return", "return"},{"Const", "const"},
         {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
         {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
         {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},

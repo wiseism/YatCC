@@ -45,7 +45,12 @@ LocationInfo currentLocation = {"unknown", 0};
 
 // 映射到 clang 风格名字
 static const std::unordered_map<std::string, std::string> mapping = {
-  {"Int", "int"}, {"Return", "return"},{"Const", "const"},{"Greater", "greater"},{"If", "if"},
+  {"Int", "int"}, {"Return", "return"},{"Const", "const"},{"Greater", "greater"},
+  {"If", "if"},
+  {"Else", "else"},
+  {"Star", "star"},
+  {"Void", "void"},
+  {"Equalequal", "equalequal"},
   {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
   {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
   {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},

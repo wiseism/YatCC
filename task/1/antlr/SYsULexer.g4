@@ -10,6 +10,8 @@ Int : 'int';
 Return : 'return';
 Const : 'const';
 If : 'if';
+Else : 'else';
+Void : 'void';
 
 LeftParen : '(';
 RightParen : ')';
@@ -20,7 +22,7 @@ RightBrace : '}';
 
 Plus : '+';
 Minus : '-';
-Multi : '*';
+Star : '*';
 Div : '/';
 Mod : '%';
 

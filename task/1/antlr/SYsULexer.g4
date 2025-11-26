@@ -9,6 +9,7 @@ LineAfterPreprocessing
 Int : 'int';
 Return : 'return';
 Const : 'const';
+If : 'if';
 
 LeftParen : '(';
 RightParen : ')';

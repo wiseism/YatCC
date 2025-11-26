@@ -36,8 +36,8 @@ Less : '<';
 Greater : '>';
 LessEqual : '<=';
 GreaterEqual : '>=';
-AndAnd : '&&';
-OrOr : '||';
+AmpAmp : '&&';
+Pipepipe : '||';
 Not : '!';
 
 Identifier

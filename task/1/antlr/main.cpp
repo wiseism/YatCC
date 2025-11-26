@@ -47,9 +47,12 @@ LocationInfo currentLocation = {"unknown", 0};
 static const std::unordered_map<std::string, std::string> mapping = {
   {"Int", "int"}, {"Return", "return"},{"Const", "const"},{"Greater", "greater"},
   {"If", "if"},
+  {"Minus", "minus"},
+  {"Pipepipe", "pipepipe"},
   {"Else", "else"},
   {"Star", "star"},
   {"Void", "void"},
+  {"AmpAmp", "ampamp"},
   {"Equalequal", "equalequal"},
   {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
   {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
@@ -74,6 +77,9 @@ void print_token(const antlr4::Token* token,
     auto text = token->getText();
 
     if (tokenType==SYsULexer::LineAfterPreprocessing) {
+      if (currentLocation.filename.empty()) {
+
+      }
       std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\".*)");
       std::smatch matches;
       if (std::regex_match(text, matches, pattern)) {
@@ -95,9 +101,12 @@ void print_token(const antlr4::Token* token,
         lastLine = line;
     }
 
-  std::string tokenTypeName = std::string(lexer.getVocabulary().getSymbolicName(token->getType()));
+  std::string tokenTypeName = std::string(lexer.getVocabulary().getSymbolicName(tokenType));
     if (tokenTypeName.empty()) tokenTypeName = "<UNKNOWN>";
 
+  if (tokenTypeName.find("qual") != std::string::npos) {
+    std::cout << tokenTypeName << std::endl;
+  }
     auto it = mapping.find(tokenTypeName);
     if (it != mapping.end()) tokenTypeName = it->second;
 

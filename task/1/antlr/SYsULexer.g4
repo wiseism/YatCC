@@ -1,13 +1,10 @@
 lexer grammar SYsULexer;
 
-LINE_COMMENT : '//' .*? '\r'? '\n';
-BLOCK_COMMENT : '/*'.*?'*/';
+LineComment : '//' .*? '\r'? '\n';
+BlockComment : '/*'.*?'*/';
 LineAfterPreprocessing
     :   '#' ~[\r\n]*
     ;
-// 添加空白行规则
-BlankLine
-    :   '\r'? '\n' [ \t]* '\r'? '\n';
 
 Int : 'int';
 Return : 'return';

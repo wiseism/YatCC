@@ -43,11 +43,16 @@ struct LocationInfo {
 
 LocationInfo currentLocation = {"unknown", 0};
 
-void updateLocationInfo(const antlr4::Token* token) {
-  if (token->getType()!=SYsULexer::LineAfterPreprocessing) {
-    currentLocation.line++;
-  }
-}
+// 映射到 clang 风格名字
+static const std::unordered_map<std::string, std::string> mapping = {
+  {"Int", "int"}, {"Return", "return"},{"Const", "const"},
+  {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
+  {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
+  {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},
+  {"Constant", "numeric_constant"}, {"Identifier", "identifier"},
+  {"Semi", "semi"}, {"Plus", "plus"}, {"Comma", "comma"}, {"Equal", "equal"},
+  {"EOF", "eof"}
+};
 
 void print_token(const antlr4::Token* token,
                  const antlr4::CommonTokenStream& tokens,
@@ -72,36 +77,21 @@ void print_token(const antlr4::Token* token,
           currentLocation.filename = filename;
         }
       }
+      currentLocation.line++;
       return;
     }
     if (tokenType==SYsULexer::Whitespace) {
       hasWhiteSpace = true;
       return;
     }
-    if (tokenType==SYsULexer::BlankLine) {
-      updateLocationInfo(token);
-      return;
-    }
     // 更新状态
     if (line != lastLine) {
-      updateLocationInfo(token);
         afterNewline = true;
         lastLine = line;
     }
 
   std::string tokenTypeName = std::string(lexer.getVocabulary().getSymbolicName(token->getType()));
     if (tokenTypeName.empty()) tokenTypeName = "<UNKNOWN>";
-
-    // 映射到 clang 风格名字
-    static const std::unordered_map<std::string, std::string> mapping = {
-        {"Int", "int"}, {"Return", "return"},{"Const", "const"},
-        {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
-        {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
-        {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},
-        {"Constant", "numeric_constant"}, {"Identifier", "identifier"},
-        {"Semi", "semi"}, {"Plus", "plus"}, {"Comma", "comma"}, {"Equal", "equal"},
-        {"EOF", "eof"}
-    };
 
     auto it = mapping.find(tokenTypeName);
     if (it != mapping.end()) tokenTypeName = it->second;
@@ -124,14 +114,13 @@ void print_token(const antlr4::Token* token,
       hasWhiteSpace = false;
     }
     outFile << "	Loc=<" << currentLocation.filename
-          << ":" << currentLocation.line << ":" << (col + 1) << ">";
+          << ":" << line-currentLocation.line << ":" << (col + 1) << ">";
 
     outFile << std::endl;
 
     // 更新状态
     afterNewline = false;
     if (text.find('\n') != std::string::npos) {
-      updateLocationInfo(token);
         afterNewline = true;
     }
 }

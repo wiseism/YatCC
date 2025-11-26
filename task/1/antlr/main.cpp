@@ -4,6 +4,135 @@
 #include <regex>
 #include <unordered_map>
 #include <vector>
+#include <string>
+#include <vector>
+#include <memory>
+#include <stack>
+#include <iostream>
+
+class FileNode {
+public:
+    std::string filename;
+    int startLine;
+    int currentLine;
+    int totalLines;  // 新增：该文件的总行数
+    std::vector<std::shared_ptr<FileNode>> children;
+    std::weak_ptr<FileNode> parent;
+
+    FileNode(const std::string& name, int line, std::shared_ptr<FileNode> parentNode = nullptr)
+        : filename(name), startLine(line), currentLine(line), totalLines(0), parent(parentNode) {}
+
+    // 计算总行数（当前行号 - 起始行号 + 1）
+    int calculateTotalLines() const {
+        return currentLine - startLine + 1;
+    }
+
+    // 递归计算该节点及其所有子节点的总行数
+    int calculateTotalLinesRecursive() const {
+        int total = calculateTotalLines();
+        for (const auto& child : children) {
+            total += child->calculateTotalLinesRecursive();
+        }
+        return total;
+    }
+};
+
+class PreprocTree {
+private:
+    std::shared_ptr<FileNode> root;
+    std::shared_ptr<FileNode> currentNode;
+    std::stack<std::shared_ptr<FileNode>> nodeStack;
+    int globalLineCounter;  // 全局行号计数器
+
+public:
+    PreprocTree() : root(nullptr), currentNode(nullptr), globalLineCounter(0) {}
+
+    void processLineDirective(int lineNum, const std::string& filename, int flags) {
+        globalLineCounter++;
+
+        if (flags == 1) {
+            // 新文件开始
+            auto newNode = std::make_shared<FileNode>(filename, lineNum, currentNode);
+            if (currentNode) {
+                currentNode->children.push_back(newNode);
+                nodeStack.push(currentNode);
+            } else {
+                root = newNode;
+            }
+            currentNode = newNode;
+        } else if (flags == 2) {
+            // 返回原文件，计算结束文件的总行数
+            if (currentNode) {
+                currentNode->totalLines = currentNode->calculateTotalLines();
+                std::cout << "文件 " << currentNode->filename
+                          << " 总行数: " << currentNode->totalLines << std::endl;
+            }
+
+            if (!nodeStack.empty()) {
+                currentNode = nodeStack.top();
+                nodeStack.pop();
+            }
+        }
+
+        if (currentNode) {
+            currentNode->currentLine = lineNum;
+        }
+    }
+
+    // 处理普通行（非预处理指令）
+    void processNormalLine() {
+        globalLineCounter++;
+        if (currentNode) {
+            currentNode->currentLine++;
+        }
+    }
+
+    // 获取整个预处理文件的总行数
+    int getTotalLines() const {
+        return globalLineCounter;
+    }
+
+    // 获取特定文件的总行数
+    int getFileTotalLines(const std::string& filename) const {
+        auto node = findFileNode(root, filename);
+        return node ? node->totalLines : 0;
+    }
+
+    // 打印详细的统计信息
+    void printStatistics(std::shared_ptr<FileNode> node = nullptr, int depth = 0) {
+        if (!node) node = root;
+        if (!node) return;
+
+        std::string indent(depth * 2, ' ');
+        int fileLines = node->calculateTotalLines();
+        int recursiveLines = node->calculateTotalLinesRecursive();
+
+        std::cout << indent << node->filename
+                  << " [起始行: " << node->startLine
+                  << ", 当前行: " << node->currentLine
+                  << ", 文件行数: " << fileLines
+                  << ", 递归行数: " << recursiveLines << "]" << std::endl;
+
+        for (const auto& child : node->children) {
+            printStatistics(child, depth + 1);
+        }
+    }
+
+private:
+    std::shared_ptr<FileNode> findFileNode(std::shared_ptr<FileNode> node,
+                                          const std::string& filename) const {
+        if (!node) return nullptr;
+        if (node->filename == filename) return node;
+
+        for (const auto& child : node->children) {
+            auto found = findFileNode(child, filename);
+            if (found) return found;
+        }
+
+        return nullptr;
+    }
+};
+
 // 映射定义，将ANTLR的tokenTypeName映射到clang的格式
 std::unordered_map<std::string, std::string> tokenTypeMapping = {
     { "Int", "int" },

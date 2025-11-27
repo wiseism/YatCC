@@ -226,7 +226,7 @@ void print_token(const antlr4::Token* token,
       }
       currentLocation.line++;
       if (line>currentLocation.oldLine+1) {
-        currentLocation.skipLine = currentLocation.skipLine+(line-currentLocation.oldLine-1);
+        currentLocation.skipLine = currentLocation.skipLine+(line-currentLocation.oldLine-2);
       }
       currentLocation.oldLine = line;
       return;

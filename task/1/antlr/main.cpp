@@ -185,6 +185,7 @@ static const std::unordered_map<std::string, std::string> mapping = {
   {"Void", "void"},
   {"AmpAmp", "ampamp"},
   {"Div", "slash"},
+  {"Mod", "percent"},
   {"EqualEqual", "equalequal"},
   {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
   {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},

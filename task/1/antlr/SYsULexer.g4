@@ -6,8 +6,8 @@ BlockComment : '/*'.*?'*/';
 LineDirective:
     '#' WS*
     Number WS+
-    ('"' FileName '"' | )
-    (WS+ LineNumber)*
+    ('"' FileName '"')
+    (WS LineNumber)*
     WS*
     ;
 

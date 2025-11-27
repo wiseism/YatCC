@@ -209,9 +209,12 @@ void print_token(const antlr4::Token* token,
       if (currentLocation.filename.empty()) {
 
       }
-      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\".*)");
+      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\"( \d)*)");
       std::smatch matches;
       if (std::regex_match(text, matches, pattern)) {
+        // std::string s0 = matches[0].str();
+        // std::string s1 = matches[1].str();
+        // std::string s3 = matches[3].str();
         std::string filename = matches[2].str();
         if (filename.find('<') == std::string::npos) {
           currentLocation.filename = filename;

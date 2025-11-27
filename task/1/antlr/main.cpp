@@ -168,9 +168,11 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
 struct LocationInfo {
     std::string filename;
     int line;
+    int oldLine;
+    int skipLine;
 };
 
-LocationInfo currentLocation = {"unknown", 0};
+LocationInfo currentLocation = {"unknown", 0, 1000, 0};
 
 // 映射到 clang 风格名字
 static const std::unordered_map<std::string, std::string> mapping = {
@@ -182,7 +184,7 @@ static const std::unordered_map<std::string, std::string> mapping = {
   {"Star", "star"},
   {"Void", "void"},
   {"AmpAmp", "ampamp"},
-  {"Equalequal", "equalequal"},
+  {"EqualEqual", "equalequal"},
   {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
   {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
   {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},
@@ -221,6 +223,10 @@ void print_token(const antlr4::Token* token,
         }
       }
       currentLocation.line++;
+      if (line>currentLocation.oldLine+1) {
+        currentLocation.skipLine = currentLocation.skipLine+(line-currentLocation.oldLine-1);
+      }
+      currentLocation.oldLine = line;
       return;
     }
     if (tokenType==SYsULexer::Whitespace) {
@@ -260,7 +266,7 @@ void print_token(const antlr4::Token* token,
       hasWhiteSpace = false;
     }
     outFile << "	Loc=<" << currentLocation.filename
-          << ":" << line-currentLocation.line << ":" << (col + 1) << ">";
+          << ":" << line-currentLocation.line-currentLocation.skipLine << ":" << (col + 1) << ">";
 
     outFile << std::endl;
 
@@ -289,6 +295,8 @@ int main(int argc, char* argv[]) {
     return -3;
   }
   currentLocation.line = 0;
+  currentLocation.oldLine = 1000;
+  currentLocation.skipLine = 0;
   antlr4::ANTLRInputStream input(inFile);
   SYsULexer lexer(&input);
 

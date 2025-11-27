@@ -205,7 +205,7 @@ void print_token(const antlr4::Token* token,
     auto col = token->getCharPositionInLine();
     auto text = token->getText();
 
-    if (tokenType==SYsULexer::LineAfterPreprocessing) {
+    if (tokenType==SYsULexer::LineDirective) {
       if (currentLocation.filename.empty()) {
 
       }

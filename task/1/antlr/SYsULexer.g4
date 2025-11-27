@@ -2,9 +2,20 @@ lexer grammar SYsULexer;
 
 LineComment : '//' .*? '\r'? '\n';
 BlockComment : '/*'.*?'*/';
-LineAfterPreprocessing
-    :   '#' ~[\r\n]*
+
+LineDirective:
+    '#' WS*
+    Number WS+
+    ('"' FileName '"' | )
+    (WS+ LineNumber)*
+    WS*
     ;
+
+// 片段规则（不会被单独作为token）
+fragment Number: [0-9]+;
+fragment LineNumber: [1234]+;
+fragment FileName: ~["\r\n]*;
+fragment WS: [ \t];
 
 Int : 'int';
 Return : 'return';

@@ -202,6 +202,7 @@ static const std::unordered_map<std::string, std::string> mapping = {
   {"Equal", "equal"},
   { "NotEqual", "exclaimequal" },
 { "GreaterEqual", "greaterequal" },
+{ "LessEqual", "lessequal" },
   {"EOF", "eof"}
 };
 

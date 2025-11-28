@@ -170,9 +170,11 @@ struct LocationInfo {
     int line;
     int oldLine;
     int skipLine;
+    int num_1;
+    int num_2;
 };
 
-LocationInfo currentLocation = {"unknown", 0, 1000, 0};
+LocationInfo currentLocation = {"unknown", 0, 1000, 0, 0, 0};
 
 // 映射到 clang 风格名字
 static const std::unordered_map<std::string, std::string> mapping = {
@@ -192,13 +194,14 @@ static const std::unordered_map<std::string, std::string> mapping = {
   { "Break", "break" },
   { "Continue", "continue" },
   { "Not", "exclaim" },
-  { "NotEqual", "exclaimequal" },
-  { "GreaterEqual", "greaterequal" },
   {"LeftParen", "l_paren"}, {"RightParen", "r_paren"},
   {"LeftBrace", "l_brace"}, {"RightBrace", "r_brace"},
   {"LeftBracket", "l_square"}, {"RightBracket", "r_square"},
   {"Constant", "numeric_constant"}, {"Identifier", "identifier"},
-  {"Semi", "semi"}, {"Plus", "plus"}, {"Comma", "comma"}, {"Equal", "equal"},
+  {"Semi", "semi"}, {"Plus", "plus"}, {"Comma", "comma"},
+  {"Equal", "equal"},
+  { "NotEqual", "exclaimequal" },
+{ "GreaterEqual", "greaterequal" },
   {"EOF", "eof"}
 };
 
@@ -220,16 +223,25 @@ void print_token(const antlr4::Token* token,
       if (currentLocation.filename.empty()) {
 
       }
-      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\"( \d)*)");
+      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\"(( \d)*))");
       std::smatch matches;
       if (std::regex_match(text, matches, pattern)) {
         // std::string s0 = matches[0].str();
         // std::string s1 = matches[1].str();
-        // std::string s3 = matches[3].str();
+        std::string s3 = matches[3].str();
         std::string filename = matches[2].str();
         if (filename.find('<') == std::string::npos) {
           currentLocation.filename = filename;
         }
+        if (!s3.empty()) {
+          if (s3.find('1')!=std::string::npos) {
+            currentLocation.num_1++;
+          }
+          if (s3.find('2')!=std::string::npos) {
+            currentLocation.num_2++;
+          }
+        }
+        std::cout<<"s3:"<<s3<<",currentLocation.num_1:"<<currentLocation.num_1<<",currentLocation.num_2:"<<currentLocation.num_2<<",currentLocation.filename:"<<currentLocation.filename<<std::endl;
       }
       currentLocation.line++;
       if (line>currentLocation.oldLine+1) {
@@ -251,9 +263,6 @@ void print_token(const antlr4::Token* token,
   std::string tokenTypeName = std::string(lexer.getVocabulary().getSymbolicName(tokenType));
     if (tokenTypeName.empty()) tokenTypeName = "<UNKNOWN>";
 
-  if (tokenTypeName.find("qual") != std::string::npos) {
-    std::cout << tokenTypeName << std::endl;
-  }
     auto it = mapping.find(tokenTypeName);
     if (it != mapping.end()) tokenTypeName = it->second;
 
@@ -274,8 +283,13 @@ void print_token(const antlr4::Token* token,
       outFile << " [LeadingSpace]";
       hasWhiteSpace = false;
     }
+    bool result = currentLocation.num_1>currentLocation.num_2;
+    int resultStr = line-currentLocation.line-currentLocation.skipLine;
+    if (result) {
+      resultStr = line;
+    }
     outFile << "	Loc=<" << currentLocation.filename
-          << ":" << line-currentLocation.line-currentLocation.skipLine << ":" << (col + 1) << ">";
+          << ":" << resultStr<< ":" << (col + 1) << ">";
 
     outFile << std::endl;
 

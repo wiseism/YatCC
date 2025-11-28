@@ -21,6 +21,9 @@ Int : 'int';
 Return : 'return';
 Const : 'const';
 If : 'if';
+While : 'while';
+Break : 'break';
+Continue : 'continue';
 Else : 'else';
 Void : 'void';
 

@@ -167,14 +167,16 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
 
 struct LocationInfo {
     std::string filename;
+    std::string sourceFileName;
     int line;
     int oldLine;
     int skipLine;
     int num_1;
     int num_2;
+    std::string preSourceFileName;
 };
 
-LocationInfo currentLocation = {"unknown", 0, 1000, 0, 0, 0};
+LocationInfo currentLocation = {"unknown", "unknown", 0, 1000, 0, 0, 0, "unknown"};
 
 // 映射到 clang 风格名字
 static const std::unordered_map<std::string, std::string> mapping = {
@@ -221,9 +223,6 @@ void print_token(const antlr4::Token* token,
     auto text = token->getText();
 
     if (tokenType==SYsULexer::LineDirective) {
-      if (currentLocation.filename.empty()) {
-
-      }
       std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\"(( \d)*))");
       std::smatch matches;
       if (std::regex_match(text, matches, pattern)) {
@@ -233,6 +232,9 @@ void print_token(const antlr4::Token* token,
         std::string filename = matches[2].str();
         if (filename.find('<') == std::string::npos) {
           currentLocation.filename = filename;
+          if (line ==1) {
+            currentLocation.sourceFileName = filename;
+          }
         }
         if (!s3.empty()) {
           if (s3.find('1')!=std::string::npos) {
@@ -242,9 +244,15 @@ void print_token(const antlr4::Token* token,
             currentLocation.num_2++;
           }
         }
-        std::cout<<"s3:"<<s3<<",currentLocation.num_1:"<<currentLocation.num_1<<",currentLocation.num_2:"<<currentLocation.num_2<<",currentLocation.filename:"<<currentLocation.filename<<std::endl;
       }
+      std::cout<<"currentLocation.line:"<<currentLocation.line<<",currentLocation.num_1:"<<currentLocation.num_1<<",currentLocation.num_2:"<<currentLocation.num_2<<",currentLocation.filename:"<<currentLocation.filename<<std::endl;
       currentLocation.line++;
+      if (currentLocation.preSourceFileName == currentLocation.sourceFileName) {
+        currentLocation.oldLine = line;
+        currentLocation.preSourceFileName = currentLocation.filename;
+        return;
+      }
+      currentLocation.preSourceFileName = currentLocation.filename;
       if (line>currentLocation.oldLine+1) {
         currentLocation.skipLine = currentLocation.skipLine+(line-currentLocation.oldLine-2);
       }

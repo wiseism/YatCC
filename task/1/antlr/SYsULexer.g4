@@ -5,10 +5,8 @@ BlockComment : '/*'.*?'*/';
 
 LineDirective:
     '#' WS*
-    Number WS+
-    ('"' FileName '"')
-    (WS LineNumber)*
-    WS*
+    (Number WS+ ('"' FileName '"' | '<' FileName '>') (WS LineNumber)* WS*
+    | 'include' WS+ ('"' FileName '"' | '<' FileName '>') WS*)
     ;
 
 // 片段规则（不会被单独作为token）

@@ -1,5 +1,6 @@
 #include "SYsULexer.hpp"
 #include "SYsULexer.tokens.hpp"
+#include <fstream>
 #include <unordered_map>
 #include <vector>
 
@@ -56,6 +57,30 @@ SYsULexer::SYsULexer(antlr4::CharStream* input)
   , mFactory(antlr4::CommonTokenFactory::DEFAULT.get())
   , mSourceName(input->getSourceName())
 {
+}
+
+void
+SYsULexer::buildOffsetMap(const std::string& sourcePath)
+{
+  std::ifstream file(sourcePath);
+  if (!file) {
+    return;
+  }
+  
+  std::string line;
+  size_t lineNum = 1;
+  size_t offset = 0;
+  
+  while (std::getline(file, line)) {
+    // 为当前行的每个列位置计算offset
+    for (size_t col = 0; col <= line.length(); ++col) {
+      mOffsetMap[{lineNum, col}] = offset + col;
+    }
+    
+    // 添加换行符的长度
+    offset += line.length() + 1;  // +1 for '\n'
+    ++lineNum;
+  }
 }
 
 std::unique_ptr<antlr4::Token>
@@ -157,11 +182,26 @@ SYsULexer::nextToken()
   }
 
   // 解析成功
+  // 如果 offset 映射为空，构建映射
+  if (mOffsetMap.empty() && !tokenSourceName.empty()) {
+    buildOffsetMap(tokenSourceName);
+  }
+  
   // 如果 type 是 EOF，直接返回 EOF token
   if (type == antlr4::Token::EOF) {
     return common_token(antlr4::Token::EOF, mInput->index(), mInput->index(), "", tokenLine, tokenColumn);
   }
-  token = common_token(type, mTokenIndex, mTokenIndex + text.length(), text, tokenLine, tokenColumn);
+  
+  // 使用原始源代码的offset（如果可用）
+  // 注意：tokenColumn是1-based，需要转换为0-based
+  {
+    size_t startOffset = mTokenIndex;
+    auto it = mOffsetMap.find({tokenLine, tokenColumn - 1});
+    if (it != mOffsetMap.end()) {
+      startOffset = it->second;
+    }
+    token = common_token(type, startOffset, startOffset + text.length(), text, tokenLine, tokenColumn);
+  }
   mTokenIndex += text.length() + 1;
   // 更新成员变量以便后续调用
   mLine = tokenLine;

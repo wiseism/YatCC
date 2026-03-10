@@ -99,6 +99,11 @@ private:
   {
     return mMgr.make<T>(args...);
   }
+
+  // 辅助函数：从AST上下文获取位置信息
+  void setLoc(Decl* decl, antlr4::ParserRuleContext* ctx);
+  void setLoc(Expr* expr, antlr4::ParserRuleContext* ctx);
+  void setRange(Stmt* stmt, antlr4::ParserRuleContext* ctx);
 };
 
 } // namespace asg

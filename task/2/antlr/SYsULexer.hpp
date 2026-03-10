@@ -2,9 +2,11 @@
 
 #include <antlr4-runtime.h>
 #include <deque>
+#include <map>
 #include <memory>
 #include <stack>
 #include <string>
+#include <utility>
 
 class SYsULexer : public antlr4::TokenSource
 {
@@ -37,6 +39,12 @@ private:
   std::string mSourceName;
   size_t mLine = 1, mColumn = 0;
   size_t mTokenIndex = 0;
+  
+  // 从（行，列）到offset的映射
+  std::map<std::pair<size_t, size_t>, size_t> mOffsetMap;
+  
+  // 构建offset映射
+  void buildOffsetMap(const std::string& sourcePath);
 
   std::unique_ptr<antlr4::CommonToken> common_token(ssize_t type,
                                                     size_t start,

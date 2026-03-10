@@ -202,6 +202,22 @@ Asg2Json::operator()(Expr* obj)
       ABORT();
   }
 
+  // 添加源代码范围信息（如果有）
+  if (obj->range.begin.offset > 0) {
+    json::Object range;
+    json::Object begin;
+    begin["col"] = static_cast<int64_t>(obj->range.begin.col);
+    begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
+    begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
+    range["begin"] = std::move(begin);
+    json::Object end;
+    end["col"] = static_cast<int64_t>(obj->range.end.col);
+    end["offset"] = static_cast<int64_t>(obj->range.end.offset);
+    end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
+    range["end"] = std::move(end);
+    ret["range"] = std::move(range);
+  }
+
   return ret;
 }
 
@@ -290,6 +306,40 @@ Asg2Json::operator()(DeclRefExpr* obj)
   Obj::Walked guard(obj);
 
   ret["kind"] = "DeclRefExpr";
+  
+  // 添加类型信息
+  if (obj->type) {
+    ret["type"] = json::Object{{"qualType", self(obj->type)}};
+  }
+  
+  // 添加值类别
+  switch (obj->cate) {
+    case Expr::Cate::kLValue:
+      ret["valueCategory"] = "lvalue";
+      break;
+    case Expr::Cate::kRValue:
+      ret["valueCategory"] = "prvalue";
+      break;
+    default:
+      break;
+  }
+  
+  // 添加被引用的声明
+  if (obj->decl) {
+    json::Object referencedDecl;
+    // 根据声明类型设置kind
+    if (obj->decl->dcst<VarDecl>())
+      referencedDecl["kind"] = "VarDecl";
+    else if (obj->decl->dcst<FunctionDecl>())
+      referencedDecl["kind"] = "FunctionDecl";
+    else
+      referencedDecl["kind"] = "Decl";
+    referencedDecl["name"] = obj->decl->name;
+    if (obj->decl->type) {
+      referencedDecl["type"] = json::Object{{"qualType", self(obj->decl->type)}};
+    }
+    ret["referencedDecl"] = std::move(referencedDecl);
+  }
 
   return ret;
 }
@@ -547,6 +597,22 @@ Asg2Json::operator()(DeclStmt* obj)
     inner.push_back(self(i));
   ret["inner"] = std::move(inner);
 
+  // 添加源代码范围信息（如果有）
+  if (obj->range.begin.offset > 0) {
+    json::Object range;
+    json::Object begin;
+    begin["col"] = static_cast<int64_t>(obj->range.begin.col);
+    begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
+    begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
+    range["begin"] = std::move(begin);
+    json::Object end;
+    end["col"] = static_cast<int64_t>(obj->range.end.col);
+    end["offset"] = static_cast<int64_t>(obj->range.end.offset);
+    end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
+    range["end"] = std::move(end);
+    ret["range"] = std::move(range);
+  }
+
   return ret;
 }
 
@@ -683,6 +749,31 @@ Asg2Json::operator()(Decl* obj)
 
   ret["type"] = json::Object({ { "qualType", self(obj->type) } });
 
+  // 添加源代码位置信息（如果有）
+  if (obj->loc.offset > 0) {
+    json::Object loc;
+    loc["col"] = static_cast<int64_t>(obj->loc.col);
+    loc["offset"] = static_cast<int64_t>(obj->loc.offset);
+    loc["tokLen"] = static_cast<int64_t>(obj->loc.tokLen);
+    ret["loc"] = std::move(loc);
+  }
+
+  // 添加源代码范围信息（如果有）
+  if (obj->range.begin.offset > 0) {
+    json::Object range;
+    json::Object begin;
+    begin["col"] = static_cast<int64_t>(obj->range.begin.col);
+    begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
+    begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
+    range["begin"] = std::move(begin);
+    json::Object end;
+    end["col"] = static_cast<int64_t>(obj->range.end.col);
+    end["offset"] = static_cast<int64_t>(obj->range.end.offset);
+    end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
+    range["end"] = std::move(end);
+    ret["range"] = std::move(range);
+  }
+
   return ret;
 }
 
@@ -695,6 +786,9 @@ Asg2Json::operator()(VarDecl* obj)
   ret["kind"] = "VarDecl";
 
   ret["name"] = obj->name;
+  
+  // 添加isUsed标记
+  ret["isUsed"] = obj->isUsed;
 
   json::Array inner;
   if (obj->init)

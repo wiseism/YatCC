@@ -7,6 +7,24 @@
 namespace asg {
 
 //==============================================================================
+// 源代码位置信息
+//==============================================================================
+
+struct SourceLocation
+{
+  std::size_t line{ 0 };      // 行号（从1开始）
+  std::size_t col{ 0 };       // 列号（从0开始）
+  std::size_t offset{ 0 };    // 字符偏移量
+  std::size_t tokLen{ 0 };    //  token长度
+};
+
+struct SourceRange
+{
+  SourceLocation begin;
+  SourceLocation end;
+};
+
+//==============================================================================
 // 类型
 //==============================================================================
 
@@ -117,6 +135,7 @@ private:
 struct FunctionType : TypeExpr
 {
   std::vector<const Type*> params;
+  std::vector<std::string> paramNames;  // 参数名
 
 private:
   void __mark__(Mark mark) override;
@@ -140,6 +159,8 @@ struct Expr : Obj
 
   const Type* type;
   Cate cate{ Cate::kINVALID };
+  SourceLocation loc;  // 源代码位置
+  SourceRange range;   // 源代码范围
 
 protected:
   void __mark__(Mark mark) override;
@@ -262,7 +283,9 @@ private:
 struct FunctionDecl;
 
 struct Stmt : Obj
-{};
+{
+  SourceRange range;  // 源代码范围
+};
 
 struct NullStmt : Stmt
 {
@@ -354,6 +377,8 @@ struct Decl : Obj
 {
   const Type* type;
   std::string name;
+  SourceLocation loc;  // 源代码位置
+  SourceRange range;   // 源代码范围
 
 protected:
   void __mark__(Mark mark) override;
@@ -362,6 +387,7 @@ protected:
 struct VarDecl : Decl
 {
   Expr* init{ nullptr };
+  bool isUsed{ false };  // 标记变量是否被使用
 
 private:
   void __mark__(Mark mark) override;

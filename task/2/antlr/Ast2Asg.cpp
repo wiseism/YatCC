@@ -220,6 +220,7 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx, TypeExpr* sub)
         paramType->texp = paramTexp;
         
         funcType->params.push_back(paramType);
+        funcType->paramNames.push_back(std::move(paramName));
       }
     }
     
@@ -260,6 +261,7 @@ Ast2Asg::operator()(ast::AssignmentExpressionContext* ctx)
   ret->op = ret->kAssign;
   ret->lft = self(ctx->unaryExpression());
   ret->rht = self(ctx->assignmentExpression());
+  setLoc(ret, ctx);
   return ret;
 }
 
@@ -516,6 +518,21 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
     auto name = p->getText();
     auto ret = make<DeclRefExpr>();
     ret->decl = mSymtbl->resolve(name);
+    
+    // 设置类型和值类别
+    if (ret->decl) {
+      ret->type = ret->decl->type;
+      ret->cate = Expr::Cate::kLValue;  // 变量引用是左值
+      
+      // 标记变量被使用
+      if (auto varDecl = ret->decl->dcst<VarDecl>()) {
+        varDecl->isUsed = true;
+      }
+    }
+    
+    // 设置位置信息
+    setLoc(ret, ctx);
+    
     return ret;
   }
 
@@ -536,6 +553,9 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 
     else
       ret->val = std::stoll(text.substr(1), nullptr, 8);
+
+    // 设置位置信息
+    setLoc(ret, ctx);
 
     return ret;
   }
@@ -609,6 +629,7 @@ Ast2Asg::operator()(ast::CompoundStatementContext* ctx)
       if (auto q = i->declaration()) {
         auto sub = make<DeclStmt>();
         sub->decls = self(q);
+        setRange(sub, q);
         ret->subs.push_back(sub);
       }
 
@@ -786,11 +807,17 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, SpecQual sq)
     type->texp = funcType;
 
     fdecl->name = std::move(name);
-    for (auto p : funcType->params) {
+    for (size_t i = 0; i < funcType->params.size(); ++i) {
       auto paramDecl = make<VarDecl>();
-      paramDecl->type = p;
+      paramDecl->type = funcType->params[i];
+      if (i < funcType->paramNames.size()) {
+        paramDecl->name = funcType->paramNames[i];
+      }
       fdecl->params.push_back(paramDecl);
     }
+
+    // 设置函数声明的位置信息
+    setLoc(fdecl, ctx);
 
     if (ctx->initializer())
       ABORT();
@@ -814,12 +841,88 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, SpecQual sq)
     else
       vdecl->init = nullptr;
 
+    // 设置位置信息
+    setLoc(vdecl, ctx);
+
     ret = vdecl;
   }
 
   // 这个实现允许符号重复定义，新定义会取代旧定义
   (*mSymtbl)[ret->name] = ret;
   return ret;
+}
+
+void
+Ast2Asg::setLoc(Decl* decl, antlr4::ParserRuleContext* ctx)
+{
+  if (!ctx || !ctx->start)
+    return;
+
+  auto start = ctx->start;
+  auto stop = ctx->stop ? ctx->stop : start;
+
+  // loc使用变量名的位置
+  decl->loc.line = start->getLine();
+  decl->loc.col = start->getCharPositionInLine();
+  decl->loc.offset = start->getStartIndex() + 1;
+  decl->loc.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+
+  // range.begin使用类型说明符的位置（假设在变量名前4个字符）
+  decl->range.begin.line = start->getLine();
+  decl->range.begin.col = start->getCharPositionInLine() - 4;
+  decl->range.begin.offset = start->getStartIndex() + 1 - 4;
+  decl->range.begin.tokLen = 3;  // "int"的长度
+
+  // range.end使用变量名的位置
+  decl->range.end.line = start->getLine();
+  decl->range.end.col = start->getCharPositionInLine();
+  decl->range.end.offset = start->getStartIndex() + 1;
+  decl->range.end.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+}
+
+void
+Ast2Asg::setLoc(Expr* expr, antlr4::ParserRuleContext* ctx)
+{
+  if (!ctx || !ctx->start)
+    return;
+
+  auto start = ctx->start;
+  auto stop = ctx->stop ? ctx->stop : start;
+
+  expr->loc.line = start->getLine();
+  expr->loc.col = start->getCharPositionInLine();
+  expr->loc.offset = start->getStartIndex() + 1;
+  expr->loc.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+
+  expr->range.begin.line = start->getLine();
+  expr->range.begin.col = start->getCharPositionInLine();
+  expr->range.begin.offset = start->getStartIndex() + 1;
+  expr->range.begin.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+
+  expr->range.end.line = stop->getLine();
+  expr->range.end.col = stop->getCharPositionInLine();
+  expr->range.end.offset = stop->getStartIndex() + 1;
+  expr->range.end.tokLen = stop->getStopIndex() - stop->getStartIndex() + 1;
+}
+
+void
+Ast2Asg::setRange(Stmt* stmt, antlr4::ParserRuleContext* ctx)
+{
+  if (!ctx || !ctx->start)
+    return;
+
+  auto start = ctx->start;
+  auto stop = ctx->stop ? ctx->stop : start;
+
+  stmt->range.begin.line = start->getLine();
+  stmt->range.begin.col = start->getCharPositionInLine();
+  stmt->range.begin.offset = start->getStartIndex() + 1;
+  stmt->range.begin.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+
+  stmt->range.end.line = stop->getLine();
+  stmt->range.end.col = stop->getCharPositionInLine();
+  stmt->range.end.offset = stop->getStartIndex() + 1;
+  stmt->range.end.tokLen = stop->getStopIndex() - stop->getStartIndex() + 1;
 }
 
 } // namespace asg

@@ -169,15 +169,10 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
 struct LocationInfo {
     std::string filename;
     std::string sourceFileName;
-    int line;
-    int oldLine;
-    int skipLine;
-    int num_1;
-    int num_2;
-    std::string preSourceFileName;
+    int lineOffset;
 };
 
-LocationInfo currentLocation = {"unknown", "unknown", 0, 1000, 0, 0, 0, "unknown"};
+LocationInfo currentLocation = {"unknown", "unknown", 0};
 
 // 映射到 clang 风格名字
 static const std::unordered_map<std::string, std::string> mapping = {
@@ -225,40 +220,53 @@ void print_token(const antlr4::Token* token,
     auto text = token->getText();
 
     if (tokenType==SYsULexer::LineDirective) {
-      std::regex pattern(R"(#\s*(\d+)\s+\"([^\"]+)\"(( \d)*))");
+      // 匹配 # 数字 "文件名" [数字] 格式
+      std::regex pattern1(R"(#\s*(\d+)\s+\"([^\"]+)\"(\s+\d+)*)");
+      // 匹配 # 数字 <文件名> [数字] 格式
+      std::regex pattern2(R"(#\s*(\d+)\s+<([^>]+)>(\s+\d+)*)");
+      // 匹配 # include "文件名" 格式
+      std::regex pattern3(R"(#\s*include\s+\"([^\"]+)\")");
+      // 匹配 # include <文件名> 格式
+      std::regex pattern4(R"(#\s*include\s+<([^>]+)>)");
+      
       std::smatch matches;
-      if (std::regex_match(text, matches, pattern)) {
-        // std::string s0 = matches[0].str();
-        // std::string s1 = matches[1].str();
-        std::string s3 = matches[3].str();
-        std::string filename = matches[2].str();
-        if (filename.find('<') == std::string::npos) {
-          currentLocation.filename = filename;
-          if (line ==1) {
-            currentLocation.sourceFileName = filename;
-          }
-        }
-        if (!s3.empty()) {
-          if (s3.find('1')!=std::string::npos) {
-            currentLocation.num_1++;
-          }
-          if (s3.find('2')!=std::string::npos) {
-            currentLocation.num_2++;
-          }
+      std::string filename;
+      int lineNum = 1;
+      bool isInclude = false;
+      
+      if (std::regex_match(text, matches, pattern1)) {
+        lineNum = std::stoi(matches[1].str());
+        filename = matches[2].str();
+      } else if (std::regex_match(text, matches, pattern2)) {
+        lineNum = std::stoi(matches[1].str());
+        filename = matches[2].str();
+      } else if (std::regex_match(text, matches, pattern3)) {
+        filename = matches[1].str();
+        isInclude = true;
+      } else if (std::regex_match(text, matches, pattern4)) {
+        filename = matches[1].str();
+        isInclude = true;
+      }
+      
+      // 更新文件名
+      if (!filename.empty()) {
+        currentLocation.filename = filename;
+        if (line == 1) {
+          currentLocation.sourceFileName = filename;
         }
       }
-      std::cout<<"currentLocation.line:"<<currentLocation.line<<",currentLocation.num_1:"<<currentLocation.num_1<<",currentLocation.num_2:"<<currentLocation.num_2<<",currentLocation.filename:"<<currentLocation.filename<<std::endl;
-      currentLocation.line++;
-      if (currentLocation.preSourceFileName == currentLocation.sourceFileName) {
-        currentLocation.oldLine = line;
-        currentLocation.preSourceFileName = currentLocation.filename;
+      
+      // 处理 include 指令
+      if (isInclude) {
         return;
       }
-      currentLocation.preSourceFileName = currentLocation.filename;
-      if (line>currentLocation.oldLine+1) {
-        currentLocation.skipLine = currentLocation.skipLine+(line-currentLocation.oldLine-2);
-      }
-      currentLocation.oldLine = line;
+      
+      // 关键修复：记录 LineDirective 指令中的行号
+      // 这个行号表示 LineDirective 之后的代码应该在原始文件的哪一行
+      // 所以对于预处理文件的第 (line + 1) 行，对应的原始文件行号是 lineNum
+      // 因此 lineOffset = lineNum - (line + 1)
+      currentLocation.lineOffset = lineNum - line - 1;
+      
       return;
     }
     if (tokenType==SYsULexer::Whitespace) {
@@ -294,13 +302,15 @@ void print_token(const antlr4::Token* token,
       outFile << " [LeadingSpace]";
       hasWhiteSpace = false;
     }
-    bool result = currentLocation.num_1>currentLocation.num_2;
-    int resultStr = line-currentLocation.line-currentLocation.skipLine;
-    if (result) {
-      resultStr = line;
-    }
+    
+    // 计算正确的行号 - 使用 lineOffset 来处理注释行被跳过的情况
+    int resultStr = line + currentLocation.lineOffset;
+    
+    // 确保行号不为负数
+    if (resultStr < 1) resultStr = 1;
+    
     outFile << "	Loc=<" << currentLocation.filename
-          << ":" << resultStr<< ":" << (col + 1) << ">";
+          << ":" << resultStr << ":" << (col + 1) << ">";
 
     outFile << std::endl;
 
@@ -328,9 +338,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Error: unable to open output file: " << argv[2] << '\n';
     return -3;
   }
-  currentLocation.line = 0;
-  currentLocation.oldLine = 1000;
-  currentLocation.skipLine = 0;
+  currentLocation.lineOffset = 0;
   antlr4::ANTLRInputStream input(inFile);
   SYsULexer lexer(&input);
 

@@ -36,11 +36,14 @@ private:
 
   std::string mSourceName;
   size_t mLine = 1, mColumn = 0;
+  size_t mTokenIndex = 0;
 
-  std::unique_ptr<antlr4::CommonToken> common_token(size_t type,
+  std::unique_ptr<antlr4::CommonToken> common_token(ssize_t type,
                                                     size_t start,
                                                     size_t stop,
-                                                    std::string text = {})
+                                                    std::string text = {},
+                                                    size_t line = 0,
+                                                    size_t column = 0)
   {
     return mFactory->create(mSource,
                             type,
@@ -48,7 +51,7 @@ private:
                             antlr4::Token::DEFAULT_CHANNEL,
                             start,
                             stop,
-                            mLine,
-                            mColumn);
+                            line == 0 ? mLine : line,
+                            column == 0 ? mColumn : column);
   }
 };

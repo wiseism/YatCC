@@ -1,0 +1,99 @@
+LineComment '// test if-else-if
+'	 [StartOfLine]	Loc=<unknown:1:1>
+int 'int'	 [StartOfLine]	Loc=<unknown:2:1>
+identifier 'ifElseIf'	 [LeadingSpace]	Loc=<unknown:2:5>
+l_paren '('		Loc=<unknown:2:13>
+r_paren ')'		Loc=<unknown:2:14>
+l_brace '{'	 [LeadingSpace]	Loc=<unknown:2:16>
+int 'int'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:3:3>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:3:7>
+semi ';'		Loc=<unknown:3:8>
+identifier 'a'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:4:3>
+equal '='	 [LeadingSpace]	Loc=<unknown:4:5>
+numeric_constant '5'	 [LeadingSpace]	Loc=<unknown:4:7>
+semi ';'		Loc=<unknown:4:8>
+int 'int'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:5:3>
+identifier 'b'	 [LeadingSpace]	Loc=<unknown:5:7>
+semi ';'		Loc=<unknown:5:8>
+identifier 'b'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:6:3>
+equal '='	 [LeadingSpace]	Loc=<unknown:6:5>
+numeric_constant '10'	 [LeadingSpace]	Loc=<unknown:6:7>
+semi ';'		Loc=<unknown:6:9>
+if 'if'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:7:3>
+l_paren '('		Loc=<unknown:7:5>
+identifier 'a'		Loc=<unknown:7:6>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:7:8>
+numeric_constant '6'	 [LeadingSpace]	Loc=<unknown:7:11>
+pipepipe '||'	 [LeadingSpace]	Loc=<unknown:7:13>
+identifier 'b'	 [LeadingSpace]	Loc=<unknown:7:16>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:7:18>
+numeric_constant '0xb'	 [LeadingSpace]	Loc=<unknown:7:21>
+r_paren ')'		Loc=<unknown:7:24>
+l_brace '{'	 [LeadingSpace]	Loc=<unknown:7:26>
+return 'return'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:8:5>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:8:12>
+semi ';'		Loc=<unknown:8:13>
+r_brace '}'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:9:3>
+else 'else'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:10:3>
+l_brace '{'	 [LeadingSpace]	Loc=<unknown:10:8>
+if 'if'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:11:5>
+l_paren '('	 [LeadingSpace]	Loc=<unknown:11:8>
+identifier 'b'		Loc=<unknown:11:9>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:11:11>
+numeric_constant '10'	 [LeadingSpace]	Loc=<unknown:11:14>
+ampamp '&&'	 [LeadingSpace]	Loc=<unknown:11:17>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:11:20>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:11:22>
+numeric_constant '1'	 [LeadingSpace]	Loc=<unknown:11:25>
+r_paren ')'		Loc=<unknown:11:26>
+identifier 'a'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:12:7>
+equal '='	 [LeadingSpace]	Loc=<unknown:12:9>
+numeric_constant '25'	 [LeadingSpace]	Loc=<unknown:12:11>
+semi ';'		Loc=<unknown:12:13>
+else 'else'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:13:5>
+if 'if'	 [LeadingSpace]	Loc=<unknown:13:10>
+l_paren '('	 [LeadingSpace]	Loc=<unknown:13:13>
+identifier 'b'		Loc=<unknown:13:14>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:13:16>
+numeric_constant '10'	 [LeadingSpace]	Loc=<unknown:13:19>
+ampamp '&&'	 [LeadingSpace]	Loc=<unknown:13:22>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:13:25>
+equalequal '=='	 [LeadingSpace]	Loc=<unknown:13:27>
+minus '-'	 [LeadingSpace]	Loc=<unknown:13:30>
+numeric_constant '5'		Loc=<unknown:13:31>
+r_paren ')'		Loc=<unknown:13:32>
+identifier 'a'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:14:7>
+equal '='	 [LeadingSpace]	Loc=<unknown:14:9>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:14:11>
+plus '+'	 [LeadingSpace]	Loc=<unknown:14:13>
+numeric_constant '15'	 [LeadingSpace]	Loc=<unknown:14:15>
+semi ';'		Loc=<unknown:14:17>
+else 'else'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:15:5>
+identifier 'a'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:16:7>
+equal '='	 [LeadingSpace]	Loc=<unknown:16:9>
+minus '-'	 [LeadingSpace]	Loc=<unknown:16:11>
+plus '+'		Loc=<unknown:16:12>
+identifier 'a'		Loc=<unknown:16:13>
+semi ';'		Loc=<unknown:16:14>
+r_brace '}'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:17:3>
+return 'return'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:19:3>
+identifier 'a'	 [LeadingSpace]	Loc=<unknown:19:10>
+semi ';'		Loc=<unknown:19:11>
+r_brace '}'	 [StartOfLine]	Loc=<unknown:20:1>
+int 'int'	 [StartOfLine]	Loc=<unknown:22:1>
+identifier 'main'	 [LeadingSpace]	Loc=<unknown:22:5>
+l_paren '('		Loc=<unknown:22:9>
+r_paren ')'		Loc=<unknown:22:10>
+l_brace '{'		Loc=<unknown:22:11>
+identifier 'putint'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:23:3>
+l_paren '('		Loc=<unknown:23:9>
+identifier 'ifElseIf'		Loc=<unknown:23:10>
+l_paren '('		Loc=<unknown:23:18>
+r_paren ')'		Loc=<unknown:23:19>
+r_paren ')'		Loc=<unknown:23:20>
+semi ';'		Loc=<unknown:23:21>
+return 'return'	 [StartOfLine] [LeadingSpace]	Loc=<unknown:24:3>
+numeric_constant '0'	 [LeadingSpace]	Loc=<unknown:24:10>
+semi ';'		Loc=<unknown:24:11>
+r_brace '}'	 [StartOfLine]	Loc=<unknown:25:1>
+eof ''		Loc=<unknown:25:2>

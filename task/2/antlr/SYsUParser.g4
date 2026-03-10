@@ -7,37 +7,62 @@ options {
 primaryExpression
     :   Identifier
     |   Constant
+    |   LeftParen expression RightParen
     ;
 
 postfixExpression
-    :   primaryExpression  
+    :   primaryExpression
+    |   postfixExpression LeftBracket expression RightBracket
+    |   postfixExpression LeftParen argumentExpressionList? RightParen
+    ;
+
+argumentExpressionList
+    :   assignmentExpression (Comma assignmentExpression)*
     ;
 
 unaryExpression
-    :
-    (postfixExpression
+    :   postfixExpression
     |   unaryOperator unaryExpression
-    )
+    |   Not unaryExpression
     ;
 
 unaryOperator
-    :   Plus | Minus
+    :   Plus
+    |   Minus
+    ;
+
+multiplicativeExpression
+    :   unaryExpression ((Star|Div|Mod) unaryExpression)*
     ;
 
 additiveExpression
-    :   unaryExpression ((Plus|Minus) unaryExpression)*
+    :   multiplicativeExpression ((Plus|Minus) multiplicativeExpression)*
     ;
 
+relationalExpression
+    :   additiveExpression ((Less|Greater|LessEqual|GreaterEqual) additiveExpression)*
+    ;
+
+equalityExpression
+    :   relationalExpression ((EqualEqual|NotEqual) relationalExpression)*
+    ;
+
+logicalAndExpression
+    :   equalityExpression (AmpAmp equalityExpression)*
+    ;
+
+logicalOrExpression
+    :   logicalAndExpression (PipePipe logicalAndExpression)*
+    ;
 
 assignmentExpression
-    :   additiveExpression
+    :   logicalOrExpression
     |   unaryExpression Equal assignmentExpression
     ;
 
 expression
     :   assignmentExpression (Comma assignmentExpression)*
     ;
-
 
 declaration
     :   declarationSpecifiers initDeclaratorList? Semi
@@ -49,6 +74,7 @@ declarationSpecifiers
 
 declarationSpecifier
     :   typeSpecifier
+    |   Const
     ;
 
 initDeclaratorList
@@ -59,11 +85,10 @@ initDeclarator
     :   declarator (Equal initializer)?
     ;
 
-
 typeSpecifier
     :   Int
+    |   Void
     ;
-
 
 declarator
     :   directDeclarator
@@ -71,7 +96,16 @@ declarator
 
 directDeclarator
     :   Identifier
+    |   directDeclarator LeftParen parameterList? RightParen
     |   directDeclarator LeftBracket assignmentExpression? RightBracket
+    ;
+
+parameterList
+    :   parameterDeclaration (Comma parameterDeclaration)*
+    ;
+
+parameterDeclaration
+    :   declarationSpecifiers declarator
     ;
 
 identifierList
@@ -84,13 +118,14 @@ initializer
     ;
 
 initializerList
-    // :   designation? initializer (Comma designation? initializer)*
     :   initializer (Comma initializer)*
     ;
 
 statement
     :   compoundStatement
     |   expressionStatement
+    |   selectionStatement
+    |   iterationStatement
     |   jumpStatement
     ;
 
@@ -111,11 +146,18 @@ expressionStatement
     :   expression? Semi
     ;
 
+selectionStatement
+    :   If LeftParen expression RightParen statement (Else statement)?
+    ;
 
+iterationStatement
+    :   While LeftParen expression RightParen statement
+    ;
 
 jumpStatement
-    :   (Return expression?)
-    Semi
+    :   Return expression? Semi
+    |   Break Semi
+    |   Continue Semi
     ;
 
 compilationUnit
@@ -132,6 +174,5 @@ externalDeclaration
     ;
 
 functionDefinition
-    : declarationSpecifiers directDeclarator LeftParen RightParen compoundStatement
+    :   declarationSpecifiers declarator compoundStatement
     ;
-

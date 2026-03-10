@@ -36,6 +36,19 @@ main(int argc, char* argv[])
   SYsULexer lexer(&input);
 
   antlr4::CommonTokenStream tokens(&lexer);
+  tokens.fill();
+  
+  std::cout << "生成的 token 数量: " << tokens.size() << std::endl;
+  for (size_t i = 0; i < tokens.size(); ++i) {
+    auto token = tokens.get(i);
+    std::cout << "Token " << i << ": type=" << token->getType() 
+              << ", text='" << token->getText() << "'"
+              << ", start=" << token->getStartIndex()
+              << ", stop=" << token->getStopIndex()
+              << ", line=" << token->getLine()
+              << ", col=" << token->getCharPositionInLine() << std::endl;
+  }
+  
   SYsUParser parser(&tokens);
 
   auto ast = parser.compilationUnit();

@@ -136,6 +136,7 @@ private:
 // 映射定义，将ANTLR的tokenTypeName映射到clang的格式
 std::unordered_map<std::string, std::string> tokenTypeMapping = {
     { "Int", "int" },
+    { "LineComment", "comment" },
     { "Identifier", "identifier" },
     { "LeftParen", "l_paren" },
     { "RightParen", "r_paren" },
@@ -160,8 +161,8 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
     { "Greater", "gt" },
     { "LessEqual", "le" },
     { "GreaterEqual", "ge" },
-    { "AndAnd", "andand" },
-    { "OrOr", "oror" },
+    { "AmpAmp", "andand" },
+    { "Pipepipe", "oror" },
     { "Not", "not" }
 };
 
@@ -182,6 +183,7 @@ LocationInfo currentLocation = {"unknown", "unknown", 0, 1000, 0, 0, 0, "unknown
 static const std::unordered_map<std::string, std::string> mapping = {
   {"Int", "int"}, {"Return", "return"},{"Const", "const"},{"Greater", "greater"},
   {"If", "if"},
+  {"LineComment", "comment"},
   {"Minus", "minus"},
   {"Pipepipe", "pipepipe"},
   {"Else", "else"},

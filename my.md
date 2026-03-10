@@ -20,6 +20,217 @@ Build finished
 
 
 ## task1
+我来帮你修复这个问题。首先让我查看 crypto.sysu.c 文件的内容，确认注释的情况，然后修改 main.cpp 中的行号计算逻辑。
+
+
+toolName: run_command
+
+status: success
+
+command: head -50 test/cases/mini-performance/crypto.sysu.c | tail -15 undefined
+
+
+
+
+toolName: run_command
+
+status: success
+
+command: head -40 test/cases/mini-performance/crypto.sysu.c undefined
+
+
+
+
+toolName: run_command
+
+status: success
+
+command: head -50 cmake-build-debug-wsl24/test/task0/mini-performance/crypto.sysu.c | tail -20 undefined
+
+现在我明白了问题所在。预处理后的文件中，第40行对应的是原始文件的第40行，但是原始文件中第40行前面有14个注释行（从第26行到第39行）。LineDirective 指令 `# 40` 指出当前行应该是原始文件的第40行，但我的代码在计算行号时没有正确处理这种情况。
+
+让我查看当前的 main.cpp 文件，看看行号计算逻辑：
+
+
+toolName: view_files
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+
+
+
+toolName: view_files
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+
+
+
+toolName: view_files
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+现在我看到了问题所在。当前的行号计算逻辑有误。让我重新设计 LineDirective 处理逻辑，正确处理注释行被跳过的情况：
+
+
+toolName: edit_file_search_replace
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+changes: undefined
+
+现在修改行号计算逻辑，使用 lineOffset 来计算正确的行号：
+
+
+toolName: edit_file_search_replace
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+changes: undefined
+
+现在修改 main 函数中的初始化代码，使用 lineOffset 而不是旧的变量：
+
+
+toolName: edit_file_search_replace
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+changes: undefined
+
+现在需要修改 Location 结构体的定义，添加 lineOffset 字段。让我先查看结构体定义：
+
+
+toolName: view_files
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+
+
+
+toolName: search_by_regex
+
+status: success
+
+query: struct Location
+
+
+
+
+toolName: view_files
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+
+
+
+toolName: edit_file_search_replace
+
+status: success
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+现在重新构建项目并运行测试：
+command: cmake --build . --target task1-score undefined
+
+
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+
+changes: undefined
+
+
+
+
+toolName: run_command
+
+status: success
+
+command: cmake --build . --target task1-score undefined
+
+得分仍然没有提高。让我检查一下 crypto.sysu.c 的具体得分情况：
+
+
+toolName: run_command
+
+status: success
+
+command: cat test/task1/mini-performance/crypto.sysu.c/score.txt | head -30 undefined
+
+看起来行号偏移了1行。让我重新分析预处理文件的结构：
+
+
+toolName: run_command
+
+status: success
+
+command: head -15 cmake-build-debug-wsl24/test/task0/mini-performance/crypto.sysu.c undefined
+我看到了问题所在。LineDirective 指令 `# 10` 表示**当前行**（第9行）之后的代码应该在原始文件的第10行。但是我的计算方式有误。让我重新设计行号计算逻辑：
+
+toolName: edit_file_search_replace
+
+status: success
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+changes: undefined
+
+toolName: edit_file_search_replace
+
+status: success
+filePath: /mnt/d/develops/git/github/cpp/YatCC/task/1/antlr/main.cpp
+changes: undefined
+
+toolName: run_command
+status: success
+command: cmake --build . --target task1-score undefined
+
+太好了！得分已经达到了满分 **100.00/100.00**！所有测试用例都通过了。
+
+## 修复总结
+### 问题分析
+crypto.sysu.c 文件第40行前面有14个注释行（从第26行到第39行），预处理后的文件中这些注释行被跳过了，导致行号计算错误。
+### 解决方案
+1. **简化 LocationInfo 结构体**：只保留必要的字段（filename、sourceFileName、lineOffset）
+2. **扩展 LineDirective 处理逻辑**：支持多种格式的预处理指令
+    - 双引号文件名：`# 1 "file.c"`
+    - 尖括号文件名：`# 1 <file.h>`
+    - include 指令：`#include "file.h"` 和 `#include <file.h>`
+3. **重新设计行号计算逻辑**：
+    - 使用 `lineOffset` 来记录预处理文件行号和原始文件行号的差值
+    - 关键公式：`lineOffset = lineNum - line - 1`
+    - 其中 `lineNum` 是 LineDirective 指令中的行号，`line` 是 LineDirective 指令在预处理文件中的行号
+    - 最终行号计算：`resultStr = line + lineOffset`
+
+### 测试结果
+所有测试用例都通过了，包括：
+- functional-0 到 functional-3 的所有测试用例
+- mini-performance 的所有测试用例
+- crypto.sysu.c 得分从 99/100 提升到 100.00/100
+
+**总分：100.00/100.00** 🎉
+
 ```shell
 /mnt/d/develops/git/github/cpp/YatCC/cmake-build-debug-wsl24/test/task1/functional-0/000_main.sysu.c/score.txt ... [PASS]
 /mnt/d/develops/git/github/cpp/YatCC/cmake-build-debug-wsl24/test/task1/functional-0/001_var_defn.sysu.c/score.txt ... [PASS]

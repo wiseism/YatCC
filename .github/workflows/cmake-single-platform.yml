@@ -43,4 +43,5 @@ jobs:
       run: |
         cmake --build . --target task1-score
         cmake --build . --target task2-score
+        cmake --build . --target task3-score
 

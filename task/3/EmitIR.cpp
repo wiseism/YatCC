@@ -99,7 +99,7 @@ EmitIR::operator()(IntegerLiteral* obj)
   return llvm::ConstantInt::get(self(obj->type), obj->val);
 }
 
-// 变量引用表达式处理
+// 声明引用处理
 llvm::Value*
 EmitIR::operator()(DeclRefExpr* obj)
 {
@@ -161,7 +161,16 @@ EmitIR::operator()(BinaryExpr* obj)
     case BinaryExpr::kAssign:
       if (auto ref = obj->lft->dcst<DeclRefExpr>()) {
         auto var = ref->decl->dcst<VarDecl>();
-        mCurIrb->CreateStore(rht, static_cast<llvm::Value*>(var->any));
+        auto varVal = static_cast<llvm::Value*>(var->any);
+        // 检查是否是函数参数（不是指针类型）
+        if (!varVal->getType()->isPointerTy()) {
+          // 函数参数，不能Store，直接返回rht
+          return rht;
+        }
+        mCurIrb->CreateStore(rht, varVal);
+        return rht;
+      } else if (obj->lft->dcst<ArraySubscriptExpr>()) {
+        mCurIrb->CreateStore(rht, lft);
         return rht;
       }
       ABORT();
@@ -199,7 +208,21 @@ EmitIR::operator()(ParenExpr* obj)
 llvm::Value*
 EmitIR::operator()(ImplicitCastExpr* obj)
 {
-  return self(obj->sub);
+  auto val = self(obj->sub);
+  
+  // 处理LValueToRValue转换
+  // 对于数组下标表达式，需要加载值
+  // 对于普通变量，DeclRefExpr已经加载了值，不需要再次加载
+  if (obj->kind == ImplicitCastExpr::kLValueToRValue) {
+    if (mCurFunc && mCurIrb->GetInsertBlock()) {
+      // 检查是否是数组下标表达式
+      if (obj->sub->dcst<ArraySubscriptExpr>()) {
+        return mCurIrb->CreateLoad(mIntTy, val);
+      }
+    }
+  }
+  
+  return val;
 }
 
 // 数组下标访问处理
@@ -211,21 +234,11 @@ EmitIR::operator()(ArraySubscriptExpr* obj)
   
   // 检查是否在函数上下文中
   if (mCurFunc && mCurIrb->GetInsertBlock()) {
-    // 创建GEP指令获取元素指针
+    // 使用安全的默认处理：一个索引
     auto ptr = mCurIrb->CreateGEP(mIntTy, baseVal, idxVal);
-    
-    // 检查表达式类型是否为指针类型
-    // 如果是指针类型，返回指针（用于嵌套数组访问）
-    // 否则，加载值并返回
-    auto exprType = self(obj->type);
-    if (llvm::dyn_cast<llvm::PointerType>(exprType)) {
-      return ptr;
-    } else {
-      return mCurIrb->CreateLoad(mIntTy, ptr);
-    }
+    return ptr;
   } else {
-    // 在全局变量初始化时，我们需要返回一个常量
-    // 对于复杂的数组访问，暂时返回0
+    // 在全局变量初始化时，返回0
     return llvm::ConstantInt::get(mIntTy, 0);
   }
 }
@@ -234,7 +247,23 @@ EmitIR::operator()(ArraySubscriptExpr* obj)
 llvm::Value*
 EmitIR::operator()(CallExpr* obj)
 {
-  ABORT();
+  // 获取函数
+  auto funcVal = self(obj->head);
+  auto callee = llvm::dyn_cast<llvm::Function>(funcVal);
+  if (!callee) {
+    llvm::errs() << "CallExpr: callee is not a function\n";
+    ABORT();
+  }
+  
+  // 处理参数
+  std::vector<llvm::Value*> args;
+  for (auto arg : obj->args) {
+    args.push_back(self(arg));
+  }
+  
+  // 调用函数
+  auto call = mCurIrb->CreateCall(callee, args);
+  return call;
 }
 
 // 初始化列表处理
@@ -587,11 +616,29 @@ EmitIR::operator()(VarDecl* obj)
       // 初始化数组
       if (obj->init) {
         if (auto initList = obj->init->dcst<InitListExpr>()) {
-          for (size_t i = 0; i < initList->list.size() && i < arrSize; ++i) {
-            auto idx = llvm::ConstantInt::get(mIntTy, i);
-            auto ptr = mCurIrb->CreateInBoundsGEP(elemTy, alloca, {llvm::ConstantInt::get(mIntTy, 0), idx});
-            auto val = self(initList->list[i]);
-            mCurIrb->CreateStore(val, ptr);
+          // 检查是否是2D数组
+          if (auto innerArrTy = llvm::dyn_cast<llvm::ArrayType>(elemTy)) {
+            // 2D数组初始化
+            auto innerElemTy = innerArrTy->getElementType();
+            auto innerArrSize = innerArrTy->getNumElements();
+            
+            for (size_t i = 0; i < initList->list.size() && i < arrSize; ++i) {
+              if (auto innerInitList = initList->list[i]->dcst<InitListExpr>()) {
+                for (size_t j = 0; j < innerInitList->list.size() && j < innerArrSize; ++j) {
+                  auto elemPtr = mCurIrb->CreateInBoundsGEP(arrTy, alloca, {llvm::ConstantInt::get(mIntTy, 0), llvm::ConstantInt::get(mIntTy, i), llvm::ConstantInt::get(mIntTy, j)});
+                  auto val = self(innerInitList->list[j]);
+                  mCurIrb->CreateStore(val, elemPtr);
+                }
+              }
+            }
+          } else {
+            // 1D数组初始化
+            for (size_t i = 0; i < initList->list.size() && i < arrSize; ++i) {
+              auto idx = llvm::ConstantInt::get(mIntTy, i);
+              auto ptr = mCurIrb->CreateInBoundsGEP(arrTy, alloca, {llvm::ConstantInt::get(mIntTy, 0), idx});
+              auto val = self(initList->list[i]);
+              mCurIrb->CreateStore(val, ptr);
+            }
           }
         }
       }

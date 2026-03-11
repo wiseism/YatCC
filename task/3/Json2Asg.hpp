@@ -71,6 +71,8 @@ private:
 
   asg::BinaryExpr* binary_expr(const llvm::json::Object& jobj);
 
+  asg::ArraySubscriptExpr* array_subscript_expr(const llvm::json::Object& jobj);
+
   asg::CallExpr* call_expr(const llvm::json::Object& jobj);
 
   asg::InitListExpr* init_list_expr(const llvm::json::Object& jobj);

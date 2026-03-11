@@ -22,6 +22,9 @@ private:
   llvm::Function* mCurFunc;
   std::unique_ptr<llvm::IRBuilder<>> mCurIrb;
 
+  llvm::BasicBlock* mLoopBreakBb;
+  llvm::BasicBlock* mLoopContinueBb;
+
   //============================================================================
   // 类型
   //============================================================================
@@ -40,11 +43,10 @@ private:
   llvm::Value* operator()(asg::UnaryExpr* obj);
   llvm::Value* operator()(asg::ParenExpr* obj);
   llvm::Value* operator()(asg::ImplicitCastExpr* obj);
+  llvm::Value* operator()(asg::ArraySubscriptExpr* obj);
   llvm::Value* operator()(asg::CallExpr* obj);
   llvm::Value* operator()(asg::InitListExpr* obj);
   llvm::Value* operator()(asg::ImplicitInitExpr* obj);
-
-  // TODO: 添加表达式处理相关声明
 
   //============================================================================
   // 语句
@@ -63,8 +65,6 @@ private:
   void operator()(asg::ContinueStmt* obj);
   void operator()(asg::DeclStmt* obj);
 
-  // TODO: 添加语句处理相关声明
-
   //============================================================================
   // 声明
   //============================================================================
@@ -74,5 +74,5 @@ private:
   void operator()(asg::FunctionDecl* obj);
   void operator()(asg::VarDecl* obj);
 
-  // TODO: 添加声明处理相关声明
+  llvm::Constant* createDefaultArrayInit(llvm::Type* ty);
 };

@@ -168,6 +168,14 @@ ImplicitCastExpr::__mark__(Mark mark)
   Expr::__mark__(mark);
 }
 
+void
+ArraySubscriptExpr::__mark__(Mark mark)
+{
+  mark(base);
+  mark(idx);
+  Expr::__mark__(mark);
+}
+
 //==============================================================================
 // 语句
 //==============================================================================

@@ -255,6 +255,15 @@ private:
   void __mark__(Mark mark) override;
 };
 
+struct ArraySubscriptExpr : Expr
+{
+  Expr* base{ nullptr };
+  Expr* idx{ nullptr };
+
+private:
+  void __mark__(Mark mark) override;
+};
+
 //==============================================================================
 // 语句
 //==============================================================================

@@ -98,7 +98,7 @@ Json2Asg::expr(const llvm::json::Object& jobj)
     ret = implicit_init_expr(jobj);
 
   else if (kind == "ArraySubscriptExpr")
-    ret = binary_expr(jobj);
+    ret = array_subscript_expr(jobj);
 
   else if (kind == "CallExpr")
     ret = call_expr(jobj);
@@ -250,10 +250,26 @@ Json2Asg::binary_expr(const llvm::json::Object& jobj)
   return binaryExpr;
 }
 
-CallExpr*
+asg::ArraySubscriptExpr*
+Json2Asg::array_subscript_expr(const llvm::json::Object& jobj)
+{
+  auto arraySubscriptExpr = make<asg::ArraySubscriptExpr>();
+  arraySubscriptExpr->type = getty(jobj);
+
+  auto inner = jobj.getArray("inner");
+  ASSERT(inner);
+  ASSERT(inner->size() == 2);
+
+  arraySubscriptExpr->base = expr(*inner->front().getAsObject());
+  arraySubscriptExpr->idx = expr(*(*inner)[1].getAsObject());
+
+  return arraySubscriptExpr;
+}
+
+asg::CallExpr*
 Json2Asg::call_expr(const llvm::json::Object& jobj)
 {
-  auto callExpr = make<CallExpr>();
+  auto callExpr = make<asg::CallExpr>();
   callExpr->type = getty(jobj);
 
   auto inner = jobj.getArray("inner");

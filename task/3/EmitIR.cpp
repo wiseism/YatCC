@@ -12,6 +12,8 @@ EmitIR::EmitIR(Obj::Mgr& mgr, llvm::LLVMContext& ctx, llvm::StringRef mid)
   , mIntTy(llvm::Type::getInt32Ty(ctx))
   , mCurIrb(std::make_unique<llvm::IRBuilder<>>(ctx))
   , mCtorTy(llvm::FunctionType::get(llvm::Type::getVoidTy(ctx), false))
+  , mLoopBreakBb(nullptr)
+  , mLoopContinueBb(nullptr)
 {
 }
 
@@ -34,7 +36,6 @@ EmitIR::operator()(const Type* type)
     switch (type->spec) {
       case Type::Spec::kInt:
         return llvm::Type::getInt32Ty(mCtx);
-      // TODO: 在此添加对更多基础类型的处理
       default:
         ABORT();
     }
@@ -45,7 +46,10 @@ EmitIR::operator()(const Type* type)
   subt.qual = type->qual;
   subt.texp = type->texp->sub;
 
-  // TODO: 在此添加对指针类型、数组类型和函数类型的处理
+  if (auto p = type->texp->dcst<ArrayType>()) {
+    auto elemTy = self(&subt);
+    return llvm::ArrayType::get(elemTy, p->len);
+  }
 
   if (auto p = type->texp->dcst<FunctionType>()) {
     std::vector<llvm::Type*> pty;
@@ -83,6 +87,8 @@ EmitIR::operator()(Expr* obj)
   if (auto p = obj->dcst<InitListExpr>())
     return self(p);
   if (auto p = obj->dcst<ImplicitInitExpr>())
+    return self(p);
+  if (auto p = obj->dcst<ArraySubscriptExpr>())
     return self(p);
   ABORT();
 }
@@ -196,6 +202,34 @@ EmitIR::operator()(ImplicitCastExpr* obj)
   return self(obj->sub);
 }
 
+// 数组下标访问处理
+llvm::Value*
+EmitIR::operator()(ArraySubscriptExpr* obj)
+{
+  auto baseVal = self(obj->base);
+  auto idxVal = self(obj->idx);
+  
+  // 检查是否在函数上下文中
+  if (mCurFunc && mCurIrb->GetInsertBlock()) {
+    // 创建GEP指令获取元素指针
+    auto ptr = mCurIrb->CreateGEP(mIntTy, baseVal, idxVal);
+    
+    // 检查表达式类型是否为指针类型
+    // 如果是指针类型，返回指针（用于嵌套数组访问）
+    // 否则，加载值并返回
+    auto exprType = self(obj->type);
+    if (llvm::dyn_cast<llvm::PointerType>(exprType)) {
+      return ptr;
+    } else {
+      return mCurIrb->CreateLoad(mIntTy, ptr);
+    }
+  } else {
+    // 在全局变量初始化时，我们需要返回一个常量
+    // 对于复杂的数组访问，暂时返回0
+    return llvm::ConstantInt::get(mIntTy, 0);
+  }
+}
+
 // 函数调用处理
 llvm::Value*
 EmitIR::operator()(CallExpr* obj)
@@ -216,7 +250,14 @@ EmitIR::operator()(InitListExpr* obj)
 llvm::Value*
 EmitIR::operator()(ImplicitInitExpr* obj)
 {
-  return llvm::ConstantInt::get(self(obj->type), 0);
+  auto ty = self(obj->type);
+  if (auto arrTy = llvm::dyn_cast<llvm::ArrayType>(ty)) {
+    auto elemTy = arrTy->getElementType();
+    auto numElems = arrTy->getNumElements();
+    std::vector<llvm::Constant*> elems(numElems, llvm::ConstantInt::get(elemTy, 0));
+    return llvm::ConstantArray::get(llvm::ArrayType::get(elemTy, numElems), elems);
+  }
+  return llvm::ConstantInt::get(ty, 0);
 }
 
 //==============================================================================
@@ -246,6 +287,10 @@ EmitIR::operator()(Stmt* obj)
   if (auto p = obj->dcst<WhileStmt>())
     return self(p);
   if (auto p = obj->dcst<DoStmt>())
+    return self(p);
+  if (auto p = obj->dcst<BreakStmt>())
+    return self(p);
+  if (auto p = obj->dcst<ContinueStmt>())
     return self(p);
   if (auto p = obj->dcst<DeclStmt>())
     return self(p);
@@ -295,13 +340,17 @@ EmitIR::operator()(IfStmt* obj)
   // 处理then分支
   mCurIrb->SetInsertPoint(thenBb);
   self(obj->then);
-  mCurIrb->CreateBr(mergeBb);
+  if (!mCurIrb->GetInsertBlock()->getTerminator()) {
+    mCurIrb->CreateBr(mergeBb);
+  }
   
   // 处理else分支
   mCurIrb->SetInsertPoint(elseBb);
   if (obj->else_)
     self(obj->else_);
-  mCurIrb->CreateBr(mergeBb);
+  if (!mCurIrb->GetInsertBlock()->getTerminator()) {
+    mCurIrb->CreateBr(mergeBb);
+  }
   
   // 设置合并块为当前插入点
   mCurIrb->SetInsertPoint(mergeBb);
@@ -315,21 +364,42 @@ EmitIR::operator()(DoStmt* obj)
   auto condBb = llvm::BasicBlock::Create(mCtx, "cond", mCurFunc);
   auto mergeBb = llvm::BasicBlock::Create(mCtx, "merge", mCurFunc);
   
+  auto oldBreakBb = mLoopBreakBb;
+  auto oldContinueBb = mLoopContinueBb;
+  mLoopBreakBb = mergeBb;
+  mLoopContinueBb = condBb;
+  
   mCurIrb->CreateBr(bodyBb);
   
   // 处理循环体
   mCurIrb->SetInsertPoint(bodyBb);
   self(obj->body);
-  mCurIrb->CreateBr(condBb);
+  if (!mCurIrb->GetInsertBlock()->getTerminator()) {
+    mCurIrb->CreateBr(condBb);
+  }
   
   // 处理条件判断
   mCurIrb->SetInsertPoint(condBb);
-  auto cond = self(obj->cond);
-  auto condBool = mCurIrb->CreateICmpNE(cond, llvm::ConstantInt::get(mIntTy, 0));
+  auto condVal = self(obj->cond);
+  llvm::Value* condBool;
+  
+  auto condTy = condVal->getType();
+  if (condTy->isIntegerTy(1)) {
+    condBool = condVal;
+  } else if (condTy->isIntegerTy()) {
+    condBool = mCurIrb->CreateICmpNE(condVal, llvm::ConstantInt::get(condTy, 0));
+  } else if (condTy->isPointerTy()) {
+    condBool = mCurIrb->CreateICmpNE(condVal, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(condTy)));
+  } else {
+    condBool = condVal;
+  }
   mCurIrb->CreateCondBr(condBool, bodyBb, mergeBb);
   
   // 设置合并块为当前插入点
   mCurIrb->SetInsertPoint(mergeBb);
+  
+  mLoopBreakBb = oldBreakBb;
+  mLoopContinueBb = oldContinueBb;
 }
 
 // DeclStmt处理
@@ -349,12 +419,28 @@ EmitIR::operator()(WhileStmt* obj)
   auto bodyBb = llvm::BasicBlock::Create(mCtx, "body", mCurFunc);
   auto mergeBb = llvm::BasicBlock::Create(mCtx, "merge", mCurFunc);
   
+  auto oldBreakBb = mLoopBreakBb;
+  auto oldContinueBb = mLoopContinueBb;
+  mLoopBreakBb = mergeBb;
+  mLoopContinueBb = condBb;
+  
   mCurIrb->CreateBr(condBb);
   
   // 处理条件判断
   mCurIrb->SetInsertPoint(condBb);
-  auto cond = self(obj->cond);
-  auto condBool = mCurIrb->CreateICmpNE(cond, llvm::ConstantInt::get(mIntTy, 0));
+  auto condVal = self(obj->cond);
+  llvm::Value* condBool;
+  
+  auto condTy = condVal->getType();
+  if (condTy->isIntegerTy(1)) {
+    condBool = condVal;
+  } else if (condTy->isIntegerTy()) {
+    condBool = mCurIrb->CreateICmpNE(condVal, llvm::ConstantInt::get(condTy, 0));
+  } else if (condTy->isPointerTy()) {
+    condBool = mCurIrb->CreateICmpNE(condVal, llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(condTy)));
+  } else {
+    condBool = condVal;
+  }
   mCurIrb->CreateCondBr(condBool, bodyBb, mergeBb);
   
   // 处理循环体
@@ -364,10 +450,28 @@ EmitIR::operator()(WhileStmt* obj)
   
   // 设置合并块为当前插入点
   mCurIrb->SetInsertPoint(mergeBb);
+  
+  mLoopBreakBb = oldBreakBb;
+  mLoopContinueBb = oldContinueBb;
 }
 
+// break语句处理
 void
-EmitIR::operator()(CompoundStmt* obj)
+EmitIR::operator()(BreakStmt* obj)
+{
+  mCurIrb->CreateBr(mLoopBreakBb);
+}
+
+// continue语句处理
+ void
+ EmitIR::operator()(ContinueStmt* obj)
+ {
+   mCurIrb->CreateBr(mLoopContinueBb);
+ }
+ 
+ // DeclStmt处理
+ void
+ EmitIR::operator()(CompoundStmt* obj)
 {
   // TODO: 可以在此添加对符号重名的处理
   for (auto&& stmt : obj->subs)
@@ -409,13 +513,90 @@ EmitIR::operator()(Decl* obj)
   ABORT();
 }
 
+// 辅助函数：递归创建默认数组初始化器
+llvm::Constant*
+EmitIR::createDefaultArrayInit(llvm::Type* ty)
+{
+  if (auto arrTy = llvm::dyn_cast<llvm::ArrayType>(ty)) {
+    auto elemTy = arrTy->getElementType();
+    auto count = arrTy->getNumElements();
+    std::vector<llvm::Constant*> elems;
+    for (uint32_t i = 0; i < count; ++i) {
+      elems.push_back(createDefaultArrayInit(elemTy));
+    }
+    return llvm::ConstantArray::get(arrTy, elems);
+  }
+  return llvm::ConstantInt::get(ty, 0);
+}
+
 // 变量声明处理
 void
 EmitIR::operator()(VarDecl* obj)
 {
   if (obj->type->texp->dcst<ArrayType>()) {
-    // TODO: 数组变量处理
-    ABORT();
+    auto llTy = self(obj->type);
+    auto arrTy = llvm::dyn_cast<llvm::ArrayType>(llTy);
+    if (!arrTy) {
+      llvm::errs() << "VarDecl: type is not ArrayType: " << *llTy << "\n";
+      ABORT();
+    }
+    auto elemTy = arrTy->getElementType();
+    auto arrSize = arrTy->getNumElements();
+    
+    if (!mCurFunc || !mCurIrb->GetInsertBlock()) {
+      // 全局数组
+      llvm::Constant* initVal = nullptr;
+      
+      if (obj->init) {
+        // 处理初始化列表
+        if (auto initList = obj->init->dcst<InitListExpr>()) {
+          std::vector<llvm::Constant*> elems;
+          for (size_t i = 0; i < initList->list.size() && i < arrSize; ++i) {
+            if (auto intLit = initList->list[i]->dcst<IntegerLiteral>()) {
+              elems.push_back(llvm::ConstantInt::get(elemTy, intLit->val));
+            } else {
+              elems.push_back(llvm::ConstantInt::get(elemTy, 0));
+            }
+          }
+          // 补齐剩余元素为0
+          while (elems.size() < arrSize) {
+            elems.push_back(llvm::ConstantInt::get(elemTy, 0));
+          }
+          initVal = llvm::ConstantArray::get(llvm::ArrayType::get(elemTy, elems.size()), elems);
+        } else if (auto intLit = obj->init->dcst<IntegerLiteral>()) {
+          // 单个值初始化整个数组为相同值
+          std::vector<llvm::Constant*> elems(arrSize, llvm::ConstantInt::get(elemTy, intLit->val));
+          initVal = llvm::ConstantArray::get(llvm::ArrayType::get(elemTy, arrSize), elems);
+        }
+      }
+      
+      if (!initVal) {
+        // 默认初始化为0
+        initVal = createDefaultArrayInit(arrTy);
+      }
+      
+      auto global = new llvm::GlobalVariable(mMod, arrTy, false, 
+                                              llvm::GlobalVariable::InternalLinkage, 
+                                              initVal, obj->name);
+      obj->any = global;
+    } else {
+      // 局部数组 - 使用alloca
+      auto alloca = mCurIrb->CreateAlloca(arrTy, nullptr, obj->name);
+      obj->any = alloca;
+      
+      // 初始化数组
+      if (obj->init) {
+        if (auto initList = obj->init->dcst<InitListExpr>()) {
+          for (size_t i = 0; i < initList->list.size() && i < arrSize; ++i) {
+            auto idx = llvm::ConstantInt::get(mIntTy, i);
+            auto ptr = mCurIrb->CreateInBoundsGEP(elemTy, alloca, {llvm::ConstantInt::get(mIntTy, 0), idx});
+            auto val = self(initList->list[i]);
+            mCurIrb->CreateStore(val, ptr);
+          }
+        }
+      }
+    }
+    return;
   }
   
   if (mCurFunc && mCurIrb->GetInsertBlock()) {

@@ -35,6 +35,14 @@ private:
   llvm::Value* operator()(asg::Expr* obj);
 
   llvm::Constant* operator()(asg::IntegerLiteral* obj);
+  llvm::Value* operator()(asg::DeclRefExpr* obj);
+  llvm::Value* operator()(asg::BinaryExpr* obj);
+  llvm::Value* operator()(asg::UnaryExpr* obj);
+  llvm::Value* operator()(asg::ParenExpr* obj);
+  llvm::Value* operator()(asg::ImplicitCastExpr* obj);
+  llvm::Value* operator()(asg::CallExpr* obj);
+  llvm::Value* operator()(asg::InitListExpr* obj);
+  llvm::Value* operator()(asg::ImplicitInitExpr* obj);
 
   // TODO: 添加表达式处理相关声明
 
@@ -45,8 +53,15 @@ private:
   void operator()(asg::Stmt* obj);
 
   void operator()(asg::CompoundStmt* obj);
-
   void operator()(asg::ReturnStmt* obj);
+  void operator()(asg::ExprStmt* obj);
+  void operator()(asg::NullStmt* obj);
+  void operator()(asg::IfStmt* obj);
+  void operator()(asg::WhileStmt* obj);
+  void operator()(asg::DoStmt* obj);
+  void operator()(asg::BreakStmt* obj);
+  void operator()(asg::ContinueStmt* obj);
+  void operator()(asg::DeclStmt* obj);
 
   // TODO: 添加语句处理相关声明
 
@@ -57,6 +72,7 @@ private:
   void operator()(asg::Decl* obj);
 
   void operator()(asg::FunctionDecl* obj);
+  void operator()(asg::VarDecl* obj);
 
   // TODO: 添加声明处理相关声明
 };

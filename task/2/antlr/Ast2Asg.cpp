@@ -562,7 +562,10 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 
   // 括号表达式
   if (ctx->LeftParen()) {
-    return self(ctx->expression());
+    auto ret = make<ParenExpr>();
+    ret->sub = self(ctx->expression());
+    setLoc(ret, ctx);
+    return ret;
   }
 
   ABORT();
@@ -743,6 +746,13 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
   }
   
   ret->name = std::move(name);
+  
+  // 设置修饰后的函数名（如果函数名不以_开头，则在函数名前加下划线）
+  if (!ret->name.empty() && ret->name[0] != '_') {
+    ret->mangledName = "_" + ret->name;
+  } else {
+    ret->mangledName = ret->name;
+  }
 
   // 函数定义在签名之后就加入符号表，以允许递归调用
   // 注意：这里添加到当前符号表（应该是TranslationUnit的符号表）
@@ -775,6 +785,27 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
             auto varDecl = make<VarDecl>();
             varDecl->type = paramType;
             varDecl->name = std::move(paramName);
+            
+            // 设置参数的位置信息
+            if (paramDecl->declarator() && paramDecl->declarator()->start) {
+              auto start = paramDecl->declarator()->start;
+              auto stop = paramDecl->declarator()->stop ? paramDecl->declarator()->stop : start;
+              
+              varDecl->loc.line = start->getLine();
+              varDecl->loc.col = start->getCharPositionInLine();
+              varDecl->loc.offset = start->getStartIndex() + 1;
+              varDecl->loc.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+              
+              varDecl->range.begin.line = start->getLine();
+              varDecl->range.begin.col = start->getCharPositionInLine() - 4;
+              varDecl->range.begin.offset = start->getStartIndex() + 1 - 4;
+              varDecl->range.begin.tokLen = 3;
+              
+              varDecl->range.end.line = start->getLine();
+              varDecl->range.end.col = start->getCharPositionInLine();
+              varDecl->range.end.offset = start->getStartIndex() + 1;
+              varDecl->range.end.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+            }
             
             ret->params.push_back(varDecl);
             
@@ -813,11 +844,39 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, SpecQual sq)
       if (i < funcType->paramNames.size()) {
         paramDecl->name = funcType->paramNames[i];
       }
+      
+      // 为函数声明中的参数设置位置信息
+      // 使用函数声明的位置作为参数的近似位置
+      if (ctx->start) {
+        auto start = ctx->start;
+        paramDecl->loc.line = start->getLine();
+        paramDecl->loc.col = start->getCharPositionInLine();
+        paramDecl->loc.offset = start->getStartIndex() + 1;
+        paramDecl->loc.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+        
+        paramDecl->range.begin.line = start->getLine();
+        paramDecl->range.begin.col = start->getCharPositionInLine() - 4;
+        paramDecl->range.begin.offset = start->getStartIndex() + 1 - 4;
+        paramDecl->range.begin.tokLen = 3;
+        
+        paramDecl->range.end.line = start->getLine();
+        paramDecl->range.end.col = start->getCharPositionInLine();
+        paramDecl->range.end.offset = start->getStartIndex() + 1;
+        paramDecl->range.end.tokLen = start->getStopIndex() - start->getStartIndex() + 1;
+      }
+      
       fdecl->params.push_back(paramDecl);
     }
 
     // 设置函数声明的位置信息
     setLoc(fdecl, ctx);
+    
+    // 设置修饰后的函数名（如果函数名不以_开头，则在函数名前加下划线）
+    if (!fdecl->name.empty() && fdecl->name[0] != '_') {
+      fdecl->mangledName = "_" + fdecl->name;
+    } else {
+      fdecl->mangledName = fdecl->name;
+    }
 
     if (ctx->initializer())
       ABORT();

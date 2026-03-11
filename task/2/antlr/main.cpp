@@ -32,8 +32,23 @@ main(int argc, char* argv[])
   std::cout << "输入 " << argv[1] << std::endl;
   std::cout << "输出 " << argv[2] << std::endl;
 
+  // 从task1的输出文件路径中推导出task0的输出文件路径
+  // 例如：/.../task1/functional-1/024_op_priority2.sysu.c/answer.txt -> /.../task0/functional-1/024_op_priority2.sysu.c
+  std::string preprocessedFile(argv[1]);
+  size_t lastSlash = preprocessedFile.find_last_of("/\\");
+  if (lastSlash != std::string::npos) {
+    // 去掉/answer.txt
+    preprocessedFile = preprocessedFile.substr(0, lastSlash);
+    // 找到task1，替换为task0
+    size_t task1Pos = preprocessedFile.find("/task1/");
+    if (task1Pos != std::string::npos) {
+      preprocessedFile.replace(task1Pos + 1, 5, "task0");
+    }
+  }
+  std::cout << "预处理文件 " << preprocessedFile << std::endl;
+
   antlr4::ANTLRInputStream input(inFile);
-  SYsULexer lexer(&input);
+  SYsULexer lexer(&input, preprocessedFile);
 
   antlr4::CommonTokenStream tokens(&lexer);
   tokens.fill();

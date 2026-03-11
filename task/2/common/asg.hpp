@@ -16,6 +16,7 @@ struct SourceLocation
   std::size_t col{ 0 };       // 列号（从0开始）
   std::size_t offset{ 0 };    // 字符偏移量
   std::size_t tokLen{ 0 };    //  token长度
+  std::string file;           // 文件名
 };
 
 struct SourceRange
@@ -397,6 +398,7 @@ struct FunctionDecl : Decl
 {
   std::vector<Decl*> params;
   CompoundStmt* body{ nullptr };
+  std::string mangledName;  // 修饰后的函数名
 
 private:
   void __mark__(Mark mark) override;

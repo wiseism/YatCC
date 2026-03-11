@@ -11,7 +11,9 @@
 class SYsULexer : public antlr4::TokenSource
 {
 public:
-  SYsULexer(antlr4::CharStream* input);
+  SYsULexer(antlr4::CharStream* input, const std::string& preprocessedFile = "");
+
+  void setPreprocessedFile(const std::string& file) { mPreprocessedFile = file; }
 
   std::unique_ptr<antlr4::Token> nextToken() override;
 
@@ -37,14 +39,24 @@ private:
   antlr4::TokenFactory<antlr4::CommonToken>* mFactory;
 
   std::string mSourceName;
+  std::string mPreprocessedFile;  // 预处理后的文件
   size_t mLine = 1, mColumn = 0;
   size_t mTokenIndex = 0;
   
   // 从（行，列）到offset的映射
   std::map<std::pair<size_t, size_t>, size_t> mOffsetMap;
   
+  // 预处理后的文件内容
+  std::string mPreprocessedContent;
+  
+  // 原始源文件的tokenSourceName
+  std::string mOriginalSourceName;
+  
   // 构建offset映射
   void buildOffsetMap(const std::string& sourcePath);
+  
+  // 在预处理后的文件中查找原始源文件内容的位置
+  void buildContentMap();
 
   std::unique_ptr<antlr4::CommonToken> common_token(ssize_t type,
                                                     size_t start,

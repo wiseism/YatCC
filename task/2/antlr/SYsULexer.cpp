@@ -51,11 +51,12 @@ static const std::unordered_map<std::string, size_t> kClangTokens{
 
 } // namespace
 
-SYsULexer::SYsULexer(antlr4::CharStream* input)
+SYsULexer::SYsULexer(antlr4::CharStream* input, const std::string& preprocessedFile)
   : mInput(input)
   , mSource(make_pair(this, input))
   , mFactory(antlr4::CommonTokenFactory::DEFAULT.get())
   , mSourceName(input->getSourceName())
+  , mPreprocessedFile(preprocessedFile)
 {
 }
 
@@ -183,7 +184,10 @@ SYsULexer::nextToken()
 
   // 解析成功
   // 如果 offset 映射为空，构建映射
-  if (mOffsetMap.empty() && !tokenSourceName.empty()) {
+  // 使用预处理后的文件而不是原始源文件
+  if (mOffsetMap.empty() && !mPreprocessedFile.empty()) {
+    buildOffsetMap(mPreprocessedFile);
+  } else if (mOffsetMap.empty() && !tokenSourceName.empty()) {
     buildOffsetMap(tokenSourceName);
   }
   

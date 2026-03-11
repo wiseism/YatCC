@@ -206,11 +206,15 @@ Asg2Json::operator()(Expr* obj)
   if (obj->range.begin.offset > 0) {
     json::Object range;
     json::Object begin;
+    if (obj->range.begin.line > 0)
+      begin["line"] = static_cast<int64_t>(obj->range.begin.line);
     begin["col"] = static_cast<int64_t>(obj->range.begin.col);
     begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
     begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
     range["begin"] = std::move(begin);
     json::Object end;
+    if (obj->range.end.line > 0)
+      end["line"] = static_cast<int64_t>(obj->range.end.line);
     end["col"] = static_cast<int64_t>(obj->range.end.col);
     end["offset"] = static_cast<int64_t>(obj->range.end.offset);
     end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
@@ -601,11 +605,15 @@ Asg2Json::operator()(DeclStmt* obj)
   if (obj->range.begin.offset > 0) {
     json::Object range;
     json::Object begin;
+    if (obj->range.begin.line > 0)
+      begin["line"] = static_cast<int64_t>(obj->range.begin.line);
     begin["col"] = static_cast<int64_t>(obj->range.begin.col);
     begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
     begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
     range["begin"] = std::move(begin);
     json::Object end;
+    if (obj->range.end.line > 0)
+      end["line"] = static_cast<int64_t>(obj->range.end.line);
     end["col"] = static_cast<int64_t>(obj->range.end.col);
     end["offset"] = static_cast<int64_t>(obj->range.end.offset);
     end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
@@ -807,6 +815,42 @@ Asg2Json::operator()(FunctionDecl* obj)
   ret["kind"] = "FunctionDecl";
 
   ret["name"] = obj->name;
+  
+  // 添加修饰后的函数名
+  if (!obj->mangledName.empty()) {
+    ret["mangledName"] = obj->mangledName;
+  }
+
+  // 添加源代码位置信息（如果有）
+  if (obj->loc.offset > 0) {
+    json::Object loc;
+    if (obj->loc.line > 0)
+      loc["line"] = static_cast<int64_t>(obj->loc.line);
+    loc["col"] = static_cast<int64_t>(obj->loc.col);
+    loc["offset"] = static_cast<int64_t>(obj->loc.offset);
+    loc["tokLen"] = static_cast<int64_t>(obj->loc.tokLen);
+    ret["loc"] = std::move(loc);
+  }
+
+  // 添加源代码范围信息（如果有）
+  if (obj->range.begin.offset > 0) {
+    json::Object range;
+    json::Object begin;
+    if (obj->range.begin.line > 0)
+      begin["line"] = static_cast<int64_t>(obj->range.begin.line);
+    begin["col"] = static_cast<int64_t>(obj->range.begin.col);
+    begin["offset"] = static_cast<int64_t>(obj->range.begin.offset);
+    begin["tokLen"] = static_cast<int64_t>(obj->range.begin.tokLen);
+    range["begin"] = std::move(begin);
+    json::Object end;
+    if (obj->range.end.line > 0)
+      end["line"] = static_cast<int64_t>(obj->range.end.line);
+    end["col"] = static_cast<int64_t>(obj->range.end.col);
+    end["offset"] = static_cast<int64_t>(obj->range.end.offset);
+    end["tokLen"] = static_cast<int64_t>(obj->range.end.tokLen);
+    range["end"] = std::move(end);
+    ret["range"] = std::move(range);
+  }
 
   json::Array inner;
   for (auto&& i : obj->params) {
@@ -814,6 +858,38 @@ Asg2Json::operator()(FunctionDecl* obj)
     pobj["kind"] = "ParmVarDecl";
     pobj["name"] = i->name;
     pobj["type"] = json::Object({ { "qualType", self(i->type) } });
+    
+    // 添加参数的位置信息
+    if (auto paramDecl = i->dcst<VarDecl>()) {
+      if (paramDecl->loc.offset > 0) {
+        json::Object loc;
+        if (paramDecl->loc.line > 0)
+          loc["line"] = static_cast<int64_t>(paramDecl->loc.line);
+        loc["col"] = static_cast<int64_t>(paramDecl->loc.col);
+        loc["offset"] = static_cast<int64_t>(paramDecl->loc.offset);
+        loc["tokLen"] = static_cast<int64_t>(paramDecl->loc.tokLen);
+        pobj["loc"] = std::move(loc);
+      }
+      
+      if (paramDecl->range.begin.offset > 0) {
+        json::Object range;
+        json::Object begin;
+        if (paramDecl->range.begin.line > 0)
+          begin["line"] = static_cast<int64_t>(paramDecl->range.begin.line);
+        begin["col"] = static_cast<int64_t>(paramDecl->range.begin.col);
+        begin["offset"] = static_cast<int64_t>(paramDecl->range.begin.offset);
+        begin["tokLen"] = static_cast<int64_t>(paramDecl->range.begin.tokLen);
+        range["begin"] = std::move(begin);
+        json::Object end;
+        if (paramDecl->range.end.line > 0)
+          end["line"] = static_cast<int64_t>(paramDecl->range.end.line);
+        end["col"] = static_cast<int64_t>(paramDecl->range.end.col);
+        end["offset"] = static_cast<int64_t>(paramDecl->range.end.offset);
+        end["tokLen"] = static_cast<int64_t>(paramDecl->range.end.tokLen);
+        range["end"] = std::move(end);
+        pobj["range"] = std::move(range);
+      }
+    }
 
     inner.push_back(std::move(pobj));
   }

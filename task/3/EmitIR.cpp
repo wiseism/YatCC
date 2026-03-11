@@ -128,54 +128,6 @@ EmitIR::operator()(DeclRefExpr* obj)
 llvm::Value*
 EmitIR::operator()(BinaryExpr* obj)
 {
-  if (obj->op == BinaryExpr::kAnd || obj->op == BinaryExpr::kOr) {
-    if (!mCurFunc) {
-      auto lft = self(obj->lft);
-      auto rht = self(obj->rht);
-      if (obj->op == BinaryExpr::kAnd) {
-        return mCurIrb->CreateAnd(lft, rht);
-      } else {
-        return mCurIrb->CreateOr(lft, rht);
-      }
-    }
-    
-    if (obj->op == BinaryExpr::kAnd) {
-      auto rhsBlock = llvm::BasicBlock::Create(mCtx, "land.rhs", mCurFunc);
-      auto endBlock = llvm::BasicBlock::Create(mCtx, "land.end", mCurFunc);
-      
-      auto lft = self(obj->lft);
-      auto lftBool = mCurIrb->CreateICmpNE(lft, llvm::ConstantInt::get(lft->getType(), 0));
-      mCurIrb->CreateCondBr(lftBool, rhsBlock, endBlock);
-      
-      mCurIrb->SetInsertPoint(rhsBlock);
-      auto rht = self(obj->rht);
-      mCurIrb->CreateBr(endBlock);
-      
-      mCurIrb->SetInsertPoint(endBlock);
-      auto phi = mCurIrb->CreatePHI(lft->getType(), 2);
-      phi->addIncoming(llvm::ConstantInt::get(lft->getType(), 0), mCurIrb->GetInsertBlock());
-      phi->addIncoming(rht, rhsBlock);
-      return phi;
-    } else {
-      auto rhsBlock = llvm::BasicBlock::Create(mCtx, "lor.rhs", mCurFunc);
-      auto endBlock = llvm::BasicBlock::Create(mCtx, "lor.end", mCurFunc);
-      
-      auto lft = self(obj->lft);
-      auto lftBool = mCurIrb->CreateICmpNE(lft, llvm::ConstantInt::get(lft->getType(), 0));
-      mCurIrb->CreateCondBr(lftBool, endBlock, rhsBlock);
-      
-      mCurIrb->SetInsertPoint(rhsBlock);
-      auto rht = self(obj->rht);
-      mCurIrb->CreateBr(endBlock);
-      
-      mCurIrb->SetInsertPoint(endBlock);
-      auto phi = mCurIrb->CreatePHI(lft->getType(), 2);
-      phi->addIncoming(llvm::ConstantInt::get(lft->getType(), 1), mCurIrb->GetInsertBlock());
-      phi->addIncoming(rht, rhsBlock);
-      return phi;
-    }
-  }
-  
   auto lft = self(obj->lft);
   auto rht = self(obj->rht);
   
@@ -202,6 +154,10 @@ EmitIR::operator()(BinaryExpr* obj)
       return mCurIrb->CreateICmpEQ(lft, rht);
     case BinaryExpr::kNe:
       return mCurIrb->CreateICmpNE(lft, rht);
+    case BinaryExpr::kAnd:
+      return mCurIrb->CreateAnd(lft, rht);
+    case BinaryExpr::kOr:
+      return mCurIrb->CreateOr(lft, rht);
     case BinaryExpr::kAssign:
       if (auto ref = obj->lft->dcst<DeclRefExpr>()) {
         auto var = ref->decl->dcst<VarDecl>();
@@ -278,8 +234,8 @@ EmitIR::operator()(ArraySubscriptExpr* obj)
   
   // 检查是否在函数上下文中
   if (mCurFunc && mCurIrb->GetInsertBlock()) {
-    // 使用安全的默认处理：一个索引
-    auto ptr = mCurIrb->CreateGEP(mIntTy, baseVal, idxVal);
+    // 简单处理：一个索引
+    auto ptr = mCurIrb->CreateInBoundsGEP(mIntTy, baseVal, idxVal);
     return ptr;
   } else {
     // 在全局变量初始化时，返回0

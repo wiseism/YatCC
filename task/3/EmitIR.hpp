@@ -17,6 +17,7 @@ private:
   llvm::LLVMContext& mCtx;
 
   llvm::Type* mIntTy;
+  llvm::Type* mI1Ty;
   llvm::FunctionType* mCtorTy;
 
   llvm::Function* mCurFunc;
@@ -24,6 +25,17 @@ private:
 
   llvm::BasicBlock* mLoopBreakBb;
   llvm::BasicBlock* mLoopContinueBb;
+
+  bool hasInsertionPoint() const;
+  llvm::Value* toBool(llvm::Value* v);
+  llvm::Value* toInt32(llvm::Value* v);
+  llvm::Value* castTo(llvm::Value* v, llvm::Type* dstTy);
+  llvm::Value* getLValueAddr(asg::Expr* expr);
+  llvm::Type* getElemType(const asg::Type* type);
+  void collectArrayDims(const asg::Type* type, std::vector<std::uint32_t>& dims);
+  void flattenInitList(asg::InitListExpr* init, std::vector<asg::Expr*>& out);
+  bool evalConstInt(asg::Expr* expr, std::int64_t& out);
+  llvm::Constant* constFromExpr(asg::Expr* expr, llvm::Type* ty);
 
   //============================================================================
   // 类型
@@ -75,4 +87,7 @@ private:
   void operator()(asg::VarDecl* obj);
 
   llvm::Constant* createDefaultArrayInit(llvm::Type* ty);
+  llvm::Constant* createArrayConstantInit(
+    const asg::Type* type,
+    asg::InitListExpr* init);
 };

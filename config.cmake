@@ -64,7 +64,7 @@ set(TASK2_EXCLUDE_REGEX "^performance/.*|^llm-performance/.*|^llm-backend/.*")
 set(TASK2_CASES_TXT "")
 
 # 实验三排除测例名的正则式
-set(TASK3_EXCLUDE_REGEX "^performance/.*|^llm-performance/.*|^llm-backend/.*")
+set(TASK3_EXCLUDE_REGEX "^performance/.*|^llm-backend/.*")
 # 实验三测例表，非空时忽略 EXCLUDE_REGEX
 set(TASK3_CASES_TXT "")
 

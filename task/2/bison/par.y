@@ -1,18 +1,9 @@
-/* 生成.output文件 */
-%verbose
-
-/* 用于调试 (yydebug) */
-%define parse.trace
-
-%code top {
-int yylex (void);             // 该函数由 Flex 生成
-void yyerror (char const *);	// 该函数定义在 par.cpp 中
-}
-
-%code requires {
+%{
+int yylex (void);             
+void yyerror (char const *);
 #include "par.hpp"
 #include <iostream>
-}
+%}
 
 %union {
   std::string* RawStr;

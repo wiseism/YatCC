@@ -1,9 +1,10 @@
 #pragma once
 
-#include "par.tab.h"
+#include "par.hpp"
 #include <string>
 #include <string_view>
 #include <cstdio>
+#include "par.tab.h"
 
 namespace lex {
 

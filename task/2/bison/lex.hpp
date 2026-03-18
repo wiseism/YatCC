@@ -1,6 +1,6 @@
 #pragma once
 
-#include "par.y.hh"
+#include "par.tab.h"
 #include <string>
 #include <string_view>
 #include <cstdio>

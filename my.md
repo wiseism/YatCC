@@ -234,7 +234,7 @@ crypto.sysu.c 文件第40行前面有14个注释行（从第26行到第39行）�
 - mini-performance 的所有测试用例
 - crypto.sysu.c 得分从 99/100 提升到 100.00/100
 
-**总分：100.00/100.00** 🎉
+**总分：100.00/100.00** 
 
 ```shell
 /mnt/d/develops/git/github/cpp/YatCC/cmake-build-debug-wsl24/test/task1/functional-0/000_main.sysu.c/score.txt ... [PASS]

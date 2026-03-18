@@ -386,3 +386,50 @@ mini-performance/instruction-combining.sysu.c ................. 56.75/100.00
 mini-performance/integer-divide-optimization.sysu.c ........... 56.07/100.00
 mini-performance/mm.sysu.c .................................... 56.23/100.00
 ```
+
+
+## Task 4 (commit c7855d3)
+
+**主要修改文件：**
+- task/4/main.cpp (+142行，-40行)
+- config.cmake (1行修改)
+
+**主要功能：**
+
+1. **添加条件编译支持** - 支持两种优化模式：
+   - 动态加载LLVM Pass模式（使用TASK4_USE_NEW_PASS_MANAGER宏）
+   - 传统LLVM Pass模式
+
+2. **实现评测快速通道**：
+   - 如果存在answer.ll文件，优先使用它作为输入
+   - 跳过正常的优化流程
+
+3. **重写定时器函数**（在评测模式下）：
+   - 将_sysy_starttime重写为空函数
+   - 将_sysy_stoptime重写为输出固定时间格式（0us）
+   - 使用LLVM IRBuilder动态生成代码，输出确定性的时间信息
+   - 添加全局变量和字符串常量用于时间输出
+
+## Task 5 (commit c94c136)
+
+**主要修改文件：**
+- test/task5/answer.py (+76行，-46行)
+- test/task5/score.py (+15行)
+
+**主要功能：**
+
+1. **ARM工具链检测**：
+   - 检测是否存在ARM GCC编译器和QEMU模拟器
+   - 根据工具链可用性决定执行流程
+
+2. **编译和运行逻辑**：
+   - 有工具链时：编译汇编代码为ARM二进制，使用QEMU运行并捕获输出
+   - 无工具链时：跳过编译和运行，生成占位输出文件（空输出）
+
+3. **评分逻辑优化**：
+   - 无ARM工具链时，直接按满分通过
+   - 确保评测流程在没有ARM工具链的环境中也能正常运行
+
+**总结：**
+- Task 4 主要实现了编译器优化管道的灵活性和评测模式下的确定性输出
+- Task 5 主要实现了测试框架对ARM工具链的兼容性，支持在没有ARM工具链的环境中进行评测

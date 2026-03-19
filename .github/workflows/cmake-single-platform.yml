@@ -11,6 +11,9 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  YatCC_LLVM_DIR: ${{ github.workspace }}/llvm/install
+  YatCC_ANTLR_DIR: ${{ github.workspace }}/antlr/install
+  YatCC_PYBIND11_DIR: ${{ github.workspace }}/pybind11/install
 
 jobs:
   build:
@@ -44,4 +47,3 @@ jobs:
         cmake --build . --target task1-score
         cmake --build . --target task2-score
         cmake --build . --target task3-score
-
